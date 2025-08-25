@@ -1,6 +1,8 @@
+
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -9,15 +11,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EventForm } from "@/components/event-form";
 import {
   ArrowUpDown,
   Search,
   MoreHorizontal,
   ChevronDown,
   ChevronUp,
+  PlusCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -35,11 +46,13 @@ export function EventList({
 }: {
   events: Event[];
 }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortConfig, setSortConfig] = React.useState<{
     key: SortKey;
     direction: "ascending" | "descending";
   } | null>({ key: "name", direction: "ascending" });
+  const [isAddEventOpen, setIsAddEventOpen] = React.useState(false);
   const isMobile = useIsMobile();
 
   const handleSort = (key: SortKey) => {
@@ -70,6 +83,12 @@ export function EventList({
       )
     );
   }, [events, searchQuery, sortConfig]);
+
+  const onEventAdded = () => {
+    setIsAddEventOpen(false);
+    // Refresh the page to show the new event
+    router.refresh();
+  }
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
     <TableHead>
@@ -175,10 +194,27 @@ export function EventList({
             className="pl-9"
           />
         </div>
-         <Button>Add Event</Button>
+         <Button onClick={() => setIsAddEventOpen(true)}>
+            <PlusCircle />
+            <span>Add Event</span>
+        </Button>
       </div>
      
       {isMobile ? renderMobileList() : renderDesktopTable()}
+
+      <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Add a New Event</DialogTitle>
+                <DialogDescription>
+                    Fill in the details below to create a new event.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <EventForm onSuccess={onEventAdded} />
+            </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

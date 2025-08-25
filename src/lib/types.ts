@@ -1,3 +1,4 @@
+
 export interface Event {
   id: string;
   name: string;
@@ -5,6 +6,8 @@ export interface Event {
   location: string;
   description: string;
 }
+
+export type NewEvent = Omit<Event, "id">;
 
 export interface Participant {
   id: string;

@@ -13,14 +13,20 @@ const ParticipantSchema = z.object({
   eventId: z.string(),
 });
 
+const EventSchema = z.object({
+    name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
+    date: z.string().min(1, { message: "Date is required." }),
+    location: z.string().min(3, { message: "Location must be at least 3 characters." }),
+    description: z.string().min(10, { message: "Description must be at least 10 characters." }),
+});
+
 
 let client: MongoClient | null = null;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 async function getDb() {
   if (!MONGODB_URI) {
-    console.error("MONGODB_URI is not set in the environment variables. Please add it to your .env file.");
-    return null;
+    throw new Error("MONGODB_URI is not set in the environment variables. Please add it to your .env file.");
   }
 
   if (!client) {
@@ -28,65 +34,85 @@ async function getDb() {
       client = new MongoClient(MONGODB_URI);
       await client.connect();
     } catch (error: any) {
+      if (error.name === 'MongoServerError' && error.codeName === 'AtlasError') {
+         throw new Error("MongoDB authentication failed. Please check your username and password in the MONGODB_URI.");
+      }
       console.error("Failed to connect to MongoDB", error);
-      client = null; // Reset client on connection error
-      return null;
+      throw new Error("Failed to connect to the database.");
     }
   }
   return client.db();
 }
 
 export async function getEvents(): Promise<Event[]> {
-  const db = await getDb();
-  if (!db) {
-    console.log("Database not available, returning empty events array.");
+  try {
+    const db = await getDb();
+    const events = await db.collection("events").find({}).sort({ date: 1 }).toArray();
+    return events.map((event) => ({
+      id: event._id.toString(),
+      name: event.name,
+      date: event.date,
+      location: event.location,
+      description: event.description,
+    }));
+  } catch (error) {
+    console.error("Error fetching events:", error);
     return [];
   }
-  const events = await db.collection("events").find({}).toArray();
-  return events.map((event) => ({
-    id: event._id.toString(),
-    name: event.name,
-    date: event.date,
-    location: event.location,
-    description: event.description,
-  }));
 }
 
 export async function getEventById(id: string): Promise<Event | null> {
   if (!ObjectId.isValid(id)) {
     return null;
   }
-  const db = await getDb();
-  if (!db) {
-    console.log(`Database not available, cannot get event by id ${id}.`);
+  try {
+    const db = await getDb();
+    const event = await db.collection("events").findOne({ _id: new ObjectId(id) });
+    if (!event) return null;
+    return {
+      id: event._id.toString(),
+      name: event.name,
+      date: event.date,
+      location: event.location,
+      description: event.description,
+    };
+  } catch (error) {
+    console.error(`Error fetching event by id ${id}:`, error);
     return null;
   }
-  const event = await db.collection("events").findOne({ _id: new ObjectId(id) });
-  if (!event) return null;
-  return {
-    id: event._id.toString(),
-    name: event.name,
-    date: event.date,
-    location: event.location,
-    description: event.description,
-  };
+}
+
+export async function addEvent(data: unknown) {
+    const validation = EventSchema.safeParse(data);
+    if (!validation.success) {
+        throw new Error("Invalid event data");
+    }
+
+    try {
+        const db = await getDb();
+        await db.collection("events").insertOne(validation.data);
+    } catch (error) {
+        console.error("Failed to add event:", error);
+        throw new Error("Database operation failed. Could not add event.");
+    }
 }
 
 export async function getParticipants(): Promise<Participant[]> {
-   const db = await getDb();
-   if (!db) {
-    console.log("Database not available, returning empty participants array.");
-    return [];
+   try {
+    const db = await getDb();
+    const participants = await db.collection("participants").find({}).toArray();
+    return participants.map((p) => ({
+      id: p._id.toString(),
+      name: p.name,
+      organization: p.organization,
+      contact: p.contact,
+      interests: p.interests,
+      eventId: p.eventId.toString(),
+    }));
+   } catch(error) {
+     console.error("Error fetching participants:", error);
+     return [];
    }
-   const participants = await db.collection("participants").find({}).toArray();
-  return participants.map((p) => ({
-    id: p._id.toString(),
-    name: p.name,
-    organization: p.organization,
-    contact: p.contact,
-    interests: p.interests,
-    eventId: p.eventId.toString(),
-  }));
 }
 
 export async function addParticipant(data: unknown) {
@@ -101,13 +127,14 @@ export async function addParticipant(data: unknown) {
     throw new Error("Invalid event ID");
   }
 
-  const db = await getDb();
-  if (!db) {
-    throw new Error("Database connection not available. Could not add participant.");
+  try {
+    const db = await getDb();
+    await db.collection("participants").insertOne({
+      ...participantData,
+      eventId: new ObjectId(eventId)
+    });
+  } catch (error) {
+    console.error("Failed to add participant:", error);
+    throw new Error("Database operation failed. Could not add participant.");
   }
-
-  await db.collection("participants").insertOne({
-    ...participantData,
-    eventId: new ObjectId(eventId)
-  });
 }
