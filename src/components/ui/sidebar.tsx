@@ -584,7 +584,10 @@ const SidebarMenuButton = React.forwardRef<
     )
 
     if (!tooltip) {
-      tooltip = childs[1]
+      const tooltipContent = childs[1]
+      if (tooltipContent && typeof tooltipContent === "object" && "props" in tooltipContent) {
+          tooltip = tooltipContent.props.children
+      }
     }
     
     if (typeof tooltip === "string") {
@@ -776,5 +779,3 @@ export {
   SidebarTitle,
   useSidebar,
 }
-
-    
