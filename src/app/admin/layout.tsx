@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -20,6 +23,8 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -32,7 +37,7 @@ export default function AdminLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/events')}>
                 <Link href="/admin/events">
                   <Calendar />
                   <span>Events</span>
@@ -40,7 +45,7 @@ export default function AdminLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/participants')}>
                 <Link href="/admin/participants">
                   <Users />
                   <span>Participants</span>
@@ -48,7 +53,7 @@ export default function AdminLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/users')}>
                 <Link href="/admin/users">
                   <UserCog />
                   <span>Users</span>
@@ -80,5 +85,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
-    
