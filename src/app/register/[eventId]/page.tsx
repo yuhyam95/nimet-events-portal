@@ -1,11 +1,11 @@
 import { RegistrationForm } from "@/components/registration-form";
-import { events } from "@/lib/data";
+import { getEventById } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CalendarDays, MapPin } from "lucide-react";
 
-export default function RegisterPage({ params }: { params: { eventId: string } }) {
-  const event = events.find((e) => e.id === params.eventId);
+export default async function RegisterPage({ params }: { params: { eventId: string } }) {
+  const event = await getEventById(params.eventId);
 
   if (!event) {
     notFound();

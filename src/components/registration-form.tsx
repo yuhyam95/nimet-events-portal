@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { addParticipant } from "@/lib/actions";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -47,15 +48,23 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("New registration for event:", eventId, values);
-    toast({
-      title: "Registration Successful!",
-      description: "We've received your registration. See you at the event!",
-    });
-    // In a real app, you would redirect or clear the form.
-    // For this demo, we'll redirect back home after a short delay.
-    setTimeout(() => router.push('/'), 2000);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      await addParticipant({ ...values, eventId });
+      toast({
+        title: "Registration Successful!",
+        description: "We've received your registration. See you at the event!",
+      });
+      // In a real app, you would redirect or clear the form.
+      // For this demo, we'll redirect back home after a short delay.
+      setTimeout(() => router.push('/'), 2000);
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: "Could not complete your registration. Please try again.",
+      });
+    }
   }
 
   return (
