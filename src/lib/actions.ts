@@ -13,29 +13,13 @@ const ParticipantSchema = z.object({
   eventId: z.string(),
 });
 
-// --- Mock Data ---
-const mockEvents: Event[] = [
-    { id: "1", name: "Annual Tech Summit", date: "2024-10-15", location: "Convention Center", description: "The biggest tech conference of the year." },
-    { id: "2", name: "AI in Healthcare", date: "2024-11-05", location: "University Auditorium", description: "Exploring the future of artificial intelligence in the medical field." },
-    { id: "3", name: "Innovator's Workshop", date: "2024-12-01", location: "Online", description: "A hands-on workshop for aspiring entrepreneurs and innovators." },
-];
-
-let mockParticipants: Participant[] = [
-    { id: "101", name: "Alice Johnson", organization: "TechCorp", contact: "alice@techcorp.com", interests: "AI and machine learning.", eventId: "1" },
-    { id: "102", name: "Bob Williams", organization: "Health Solutions", contact: "bob@health.com", interests: "Medical technology.", eventId: "2" },
-    { id: "103", name: "Charlie Brown", organization: "Innovate LLC", contact: "charlie@innovate.com", interests: "Startups and product design.", eventId: "3" },
-    { id: "104", name: "Diana Prince", organization: "TechCorp", contact: "diana@techcorp.com", interests: "Frontend development.", eventId: "1" },
-];
-// --- End Mock Data ---
-
 
 let client: MongoClient | null = null;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// We will keep the MongoDB connection logic, but it won't be used while MONGODB_URI is not set.
-// This makes it easy to switch back later.
 async function getDb() {
-  if (!MONGODB_URI || MONGODB_URI === "") {
+  if (!MONGODB_URI) {
+    console.error("MONGODB_URI is not set in the environment variables. Please add it to your .env file.");
     return null;
   }
 
@@ -43,10 +27,9 @@ async function getDb() {
     try {
       client = new MongoClient(MONGODB_URI);
       await client.connect();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to connect to MongoDB", error);
-      // If connection fails, we'll fall back to mock data.
-      client = null; 
+      client = null; // Reset client on connection error
       return null;
     }
   }
@@ -55,8 +38,10 @@ async function getDb() {
 
 export async function getEvents(): Promise<Event[]> {
   const db = await getDb();
-  if (!db) return Promise.resolve(mockEvents);
-
+  if (!db) {
+    console.log("Database not available, returning empty events array.");
+    return [];
+  }
   const events = await db.collection("events").find({}).toArray();
   return events.map((event) => ({
     id: event._id.toString(),
@@ -68,14 +53,14 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 export async function getEventById(id: string): Promise<Event | null> {
-  const db = await getDb();
-  if (!db) {
-    return Promise.resolve(mockEvents.find(e => e.id === id) || null);
-  }
   if (!ObjectId.isValid(id)) {
     return null;
   }
-
+  const db = await getDb();
+  if (!db) {
+    console.log(`Database not available, cannot get event by id ${id}.`);
+    return null;
+  }
   const event = await db.collection("events").findOne({ _id: new ObjectId(id) });
   if (!event) return null;
   return {
@@ -89,9 +74,11 @@ export async function getEventById(id: string): Promise<Event | null> {
 
 export async function getParticipants(): Promise<Participant[]> {
    const db = await getDb();
-   if (!db) return Promise.resolve(mockParticipants);
-   
-  const participants = await db.collection("participants").find({}).toArray();
+   if (!db) {
+    console.log("Database not available, returning empty participants array.");
+    return [];
+   }
+   const participants = await db.collection("participants").find({}).toArray();
   return participants.map((p) => ({
     id: p._id.toString(),
     name: p.name,
@@ -110,21 +97,15 @@ export async function addParticipant(data: unknown) {
 
   const { eventId, ...participantData } = validation.data;
   
-  const db = await getDb();
-  if (!db) {
-      const newParticipant = {
-          id: (mockParticipants.length + 101).toString(),
-          ...participantData,
-          eventId
-      };
-      mockParticipants.push(newParticipant);
-      console.log("Added mock participant:", newParticipant);
-      return Promise.resolve();
-  }
   if (!ObjectId.isValid(eventId)) {
     throw new Error("Invalid event ID");
   }
-  
+
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database connection not available. Could not add participant.");
+  }
+
   await db.collection("participants").insertOne({
     ...participantData,
     eventId: new ObjectId(eventId)
