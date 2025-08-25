@@ -568,6 +568,54 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
     const childs = React.Children.toArray(children)
+    const icon = childs[0];
+    const text = childs.length > 1 ? childs[1] : null;
+
+    if (asChild) {
+      const child = React.Children.only(children) as React.ReactElement;
+      const grandChildren = React.Children.toArray(child.props.children)
+      const icon = grandChildren[0];
+      const text = grandChildren.length > 1 ? grandChildren[1] : null;
+
+      const buttonContent = (
+         <>
+            {icon}
+            {text && <span className="group-data-[state=collapsed]:hidden duration-300">{text}</span>}
+         </>
+      )
+
+      const button = React.cloneElement(child, {
+        ref,
+        "data-sidebar": "menu-button",
+        "data-size": size,
+        "data-active": isActive,
+        className: cn(sidebarMenuButtonVariants({ variant, size }), child.props.className),
+        ...props,
+        children: buttonContent
+      })
+
+      if (typeof tooltip === "string") {
+        tooltip = {
+          children: tooltip,
+        }
+      }
+
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent
+            side="right"
+            align="center"
+            hidden={state !== "collapsed" || isMobile}
+            {...tooltip}
+          >
+            {text}
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
 
     const button = (
       <Comp
@@ -578,18 +626,11 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        {childs[0]}
-        <span className="group-data-[state=collapsed]:hidden duration-300">{childs[1]}</span>
+        {icon}
+        {text && <span className="group-data-[state=collapsed]:hidden duration-300">{text}</span>}
       </Comp>
     )
 
-    if (!tooltip) {
-      const tooltipContent = childs[1]
-      if (tooltipContent && typeof tooltipContent === "object" && "props" in tooltipContent) {
-          tooltip = tooltipContent.props.children
-      }
-    }
-    
     if (typeof tooltip === "string") {
       tooltip = {
         children: tooltip,
@@ -604,7 +645,9 @@ const SidebarMenuButton = React.forwardRef<
           align="center"
           hidden={state !== "collapsed" || isMobile}
           {...tooltip}
-        />
+        >
+         {text}
+        </TooltipContent>
       </Tooltip>
     )
   }
