@@ -28,13 +28,7 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Bot className="w-8 h-8 text-primary" />
-            <SidebarTitle>Admin Panel</SidebarTitle>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="pt-16">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/events')}>
@@ -76,9 +70,11 @@ export default function AdminLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="p-4 sm:p-6 lg:p-8 flex items-center gap-4 md:hidden border-b">
-            <SidebarTrigger />
-            <h1 className="text-xl font-semibold">Dashboard</h1>
+        <header className="flex items-center gap-4 md:hidden border-b">
+            <div className="p-4 sm:p-6 lg:p-8">
+                <SidebarTrigger />
+            </div>
+            <h1 className="text-xl font-semibold text-black">Dashboard</h1>
         </header>
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </SidebarInset>

@@ -17,7 +17,7 @@ const EventSchema = z.object({
     name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
     date: z.string().min(1, { message: "Date is required." }),
     location: z.string().min(3, { message: "Location must be at least 3 characters." }),
-    description: z.string().min(10, { message: "Description must be at least 10 characters." }),
+    description: z.string().optional(),
 });
 
 
@@ -94,6 +94,50 @@ export async function addEvent(data: unknown) {
     } catch (error) {
         console.error("Failed to add event:", error);
         throw new Error("Database operation failed. Could not add event.");
+    }
+}
+
+export async function updateEvent(id: string, data: unknown) {
+    if (!ObjectId.isValid(id)) {
+        throw new Error("Invalid event ID");
+    }
+
+    const validation = EventSchema.safeParse(data);
+    if (!validation.success) {
+        throw new Error("Invalid event data");
+    }
+
+    try {
+        const db = await getDb();
+        const result = await db.collection("events").updateOne(
+            { _id: new ObjectId(id) },
+            { $set: validation.data }
+        );
+        
+        if (result.matchedCount === 0) {
+            throw new Error("Event not found");
+        }
+    } catch (error) {
+        console.error("Failed to update event:", error);
+        throw new Error("Database operation failed. Could not update event.");
+    }
+}
+
+export async function deleteEvent(id: string) {
+    if (!ObjectId.isValid(id)) {
+        throw new Error("Invalid event ID");
+    }
+
+    try {
+        const db = await getDb();
+        const result = await db.collection("events").deleteOne({ _id: new ObjectId(id) });
+        
+        if (result.deletedCount === 0) {
+            throw new Error("Event not found");
+        }
+    } catch (error) {
+        console.error("Failed to delete event:", error);
+        throw new Error("Database operation failed. Could not delete event.");
     }
 }
 

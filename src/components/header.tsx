@@ -7,8 +7,8 @@ export function Header() {
     <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="text-xl font-bold font-headline text-primary-foreground hover:text-accent transition-colors">
-            NIMET Events Portal
+          <Link href="/" className="text-xl font-bold font-headline text-black-foreground hover:text-accent transition-colors">
+            NIMET Events Management Portal
           </Link>
           <nav>
             <Button asChild variant="ghost">

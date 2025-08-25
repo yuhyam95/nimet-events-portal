@@ -15,15 +15,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { addEvent } from "@/lib/actions";
+import { addEvent, updateEvent } from "@/lib/actions";
 import type { Event } from "@/lib/types";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-  date: z.string().min(1, { message: "Date is required." }),
+  date: z.date({ required_error: "Date is required." }),
   location: z.string().min(3, { message: "Location must be at least 3 characters." }),
-  description: z.string().min(10, { message: "Description must be at least 10 characters." }),
+  theme: z.string().optional(),
 });
 
 interface EventFormProps {
@@ -38,25 +43,41 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: event?.name || "",
-      date: event?.date || "",
+      date: event?.date ? new Date(event.date) : undefined,
       location: event?.location || "",
-      description: event?.description || "",
+      theme: event?.description || "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await addEvent(values);
-      toast({
-        title: "Event Created!",
-        description: "The new event has been successfully added.",
-      });
+      const eventData = {
+        ...values,
+        date: values.date.toISOString().split('T')[0], // Convert date to string format
+        description: values.theme || "", // Map theme to description for backend compatibility
+      };
+      
+      if (event?.id) {
+        // Update existing event
+        await updateEvent(event.id, eventData);
+        toast({
+          title: "Event Updated!",
+          description: "The event has been successfully updated.",
+        });
+      } else {
+        // Create new event
+        await addEvent(eventData);
+        toast({
+          title: "Event Created!",
+          description: "The new event has been successfully added.",
+        });
+      }
       onSuccess();
     } catch (error) {
        toast({
         variant: "destructive",
         title: "Operation Failed",
-        description: "Could not create the event. Please try again.",
+        description: event?.id ? "Could not update the event. Please try again." : "Could not create the event. Please try again.",
       });
     }
   }
@@ -81,11 +102,39 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. October 26, 2024" {...field} />
-              </FormControl>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
@@ -105,13 +154,13 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         />
         <FormField
           control={form.control}
-          name="description"
+          name="theme"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Theme (Optional)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="A brief summary of the event."
+                  placeholder="Enter the event theme or leave blank"
                   className="resize-none"
                   {...field}
                 />
@@ -121,7 +170,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Creating..." : "Create Event"}
+            {form.formState.isSubmitting 
+              ? (event?.id ? "Updating..." : "Creating...") 
+              : (event?.id ? "Update Event" : "Create Event")
+            }
         </Button>
       </form>
     </Form>

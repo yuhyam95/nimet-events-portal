@@ -18,6 +18,16 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +48,35 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Event } from "@/lib/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { format, parseISO } from "date-fns";
+import { deleteEvent } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 
 type SortKey = keyof Event;
+
+// Helper function to add ordinal suffix to day
+const getOrdinalSuffix = (day: number): string => {
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+};
+
+// Helper function to format date as "25th August, 2025"
+const formatEventDate = (dateString: string): string => {
+  try {
+    const date = parseISO(dateString);
+    const day = date.getDate();
+    const ordinalSuffix = getOrdinalSuffix(day);
+    return format(date, `d'${ordinalSuffix}' MMMM, yyyy`);
+  } catch (error) {
+    // Fallback to original date string if parsing fails
+    return dateString;
+  }
+};
 
 export function EventList({
   events,
@@ -47,12 +84,15 @@ export function EventList({
   events: Event[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortConfig, setSortConfig] = React.useState<{
     key: SortKey;
     direction: "ascending" | "descending";
   } | null>({ key: "name", direction: "ascending" });
   const [isAddEventOpen, setIsAddEventOpen] = React.useState(false);
+  const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
+  const [deletingEvent, setDeletingEvent] = React.useState<Event | null>(null);
   const isMobile = useIsMobile();
 
   const handleSort = (key: SortKey) => {
@@ -86,8 +126,29 @@ export function EventList({
 
   const onEventAdded = () => {
     setIsAddEventOpen(false);
+    setEditingEvent(null);
     // Refresh the page to show the new event
     router.refresh();
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!deletingEvent) return;
+    
+    try {
+      await deleteEvent(deletingEvent.id);
+      toast({
+        title: "Event Deleted!",
+        description: "The event has been successfully deleted.",
+      });
+      setDeletingEvent(null);
+      router.refresh();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: "Could not delete the event. Please try again.",
+      });
+    }
   }
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
@@ -117,7 +178,7 @@ export function EventList({
           <CardContent className="space-y-2">
             <p className="text-sm">
               <span className="font-semibold">Date: </span>
-              {event.date}
+              {formatEventDate(event.date)}
             </p>
             <p className="text-sm">
               <span className="font-semibold">Location: </span>
@@ -126,8 +187,23 @@ export function EventList({
              <p className="text-sm text-muted-foreground pt-2">
               {event.description}
             </p>
-            <div className="pt-2">
-                <Button variant="outline" size="sm" className="w-full">Edit Event</Button>
+            <div className="pt-2 space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => setEditingEvent(event)}
+                >
+                  Edit Event
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => setDeletingEvent(event)}
+                >
+                  Delete Event
+                </Button>
             </div>
           </CardContent>
         </Card>
@@ -151,7 +227,7 @@ export function EventList({
               sortedAndFilteredEvents.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell className="font-medium">{event.name}</TableCell>
-                  <TableCell>{event.date}</TableCell>
+                  <TableCell>{formatEventDate(event.date)}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell>
                      <DropdownMenu>
@@ -162,9 +238,16 @@ export function EventList({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditingEvent(event)}>
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuItem>View Participants</DropdownMenuItem>
-                           <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                           <DropdownMenuItem 
+                             className="text-destructive"
+                             onClick={() => setDeletingEvent(event)}
+                           >
+                             Delete
+                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                   </TableCell>
@@ -215,6 +298,37 @@ export function EventList({
             </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Event</DialogTitle>
+                <DialogDescription>
+                    Update the event details below.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <EventForm onSuccess={onEventAdded} event={editingEvent || undefined} />
+            </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingEvent} onOpenChange={(open) => !open && setDeletingEvent(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the event "{deletingEvent?.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEvent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
