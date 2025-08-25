@@ -29,18 +29,18 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { generateParticipantTags } from "@/ai/flows/generate-tags";
 import type { Participant } from "@/lib/types";
-import type { GenerateParticipantTagsOutput } from "@/ai/flows/generate-tags";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
+import { format, parseISO } from "date-fns";
 
 type SortKey = keyof Participant;
 
 export function ParticipantList({
   initialParticipants,
 }: {
-  initialParticipants: Participant[];
+  initialParticipants: (Participant & { eventName: string; eventDate: string; eventTheme: string })[];
 }) {
   const [participants, setParticipants] = React.useState(initialParticipants);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -51,7 +51,7 @@ export function ParticipantList({
   
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedParticipant, setSelectedParticipant] = React.useState<Participant | null>(null);
-  const [generatedContent, setGeneratedContent] = React.useState<GenerateParticipantTagsOutput | null>(null);
+  const [generatedFlyer, setGeneratedFlyer] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -85,29 +85,55 @@ export function ParticipantList({
     );
   }, [participants, searchQuery, sortConfig]);
 
-  const handleGenerateTag = async (participant: Participant) => {
+  const handleGenerateTag = async (participant: Participant & { eventName: string; eventDate: string; eventTheme: string }) => {
     setSelectedParticipant(participant);
     setIsDialogOpen(true);
     setIsLoading(true);
-    setGeneratedContent(null);
+    setGeneratedFlyer(null);
     try {
-        const result = await generateParticipantTags({
-            name: participant.name,
-            organization: participant.organization,
-            interests: participant.interests,
-            contactDetails: participant.contact,
+        // Format the event date
+        const formattedDate = formatEventDate(participant.eventDate);
+        
+        const flyerDataUrl = await generateFlyer({
+            eventName: participant.eventName,
+            eventTheme: participant.eventTheme,
+            eventDate: formattedDate,
+            participantName: participant.name,
         });
-        setGeneratedContent(result);
+        setGeneratedFlyer(flyerDataUrl);
     } catch(error) {
-        console.error("Failed to generate tags:", error);
+        console.error("Failed to generate flyer:", error);
         toast({
             variant: "destructive",
             title: "Generation Failed",
-            description: "Could not generate the participant tag. Please try again."
+            description: "Could not generate the participant flyer. Please try again."
         })
         setIsDialogOpen(false);
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  // Helper function to format event date
+  const formatEventDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString);
+      const day = date.getDate();
+      const ordinalSuffix = getOrdinalSuffix(day);
+      return format(date, `d'${ordinalSuffix}' MMMM, yyyy`);
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Helper function to add ordinal suffix to day
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
     }
   };
 
@@ -144,6 +170,14 @@ export function ParticipantList({
               <span className="font-semibold text-foreground">Contact: </span>
               {participant.contact}
             </p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Phone: </span>
+              {participant.phone}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Event: </span>
+              {participant.eventName}
+            </p>
             <Button
               variant="outline"
               size="sm"
@@ -151,7 +185,7 @@ export function ParticipantList({
               onClick={() => handleGenerateTag(participant)}
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate Tag
+              Generate Flyer
             </Button>
           </CardContent>
         </Card>
@@ -167,6 +201,8 @@ export function ParticipantList({
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
               <SortableHeader sortKey="contact">Contact</SortableHeader>
+              <SortableHeader sortKey="phone">Phone</SortableHeader>
+              <TableHead>Event</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -177,17 +213,19 @@ export function ParticipantList({
                   <TableCell className="font-medium">{participant.name}</TableCell>
                   <TableCell>{participant.organization}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
+                  <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
+                  <TableCell className="text-muted-foreground">{participant.eventName}</TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Tag
+                      Generate Flyer
                     </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -218,37 +256,45 @@ export function ParticipantList({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="text-accent" />
-                Generated Tag for {selectedParticipant?.name}
+                Generated Flyer for {selectedParticipant?.name}
             </DialogTitle>
             <DialogDescription>
-                AI-generated content for the participant's name tag and a personalized message.
+                A personalized flyer for the participant with event details.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
             {isLoading ? (
                 <div className="space-y-4">
                     <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-96 w-full" />
                 </div>
-            ) : generatedContent && (
+            ) : generatedFlyer && (
                 <>
                     <div>
-                        <h3 className="font-semibold mb-2">Tag Preview</h3>
+                        <h3 className="font-semibold mb-2">Flyer Preview</h3>
                         <div className="border rounded-lg p-4 bg-background text-center shadow-md">
-                            <pre className="text-lg font-bold whitespace-pre-wrap font-headline">{generatedContent.tagContent}</pre>
+                            <img 
+                                src={generatedFlyer} 
+                                alt="Generated Flyer" 
+                                className="w-full h-auto max-h-96 object-contain mx-auto"
+                            />
                         </div>
-                    </div>
-                     <div>
-                        <h3 className="font-semibold mb-2">Personalized Message</h3>
-                        <p className="text-muted-foreground italic border-l-4 border-primary pl-4 py-2">{generatedContent.personalizedMessage}</p>
                     </div>
                 </>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button 
+                variant="outline" 
+                onClick={() => {
+                    if (generatedFlyer && selectedParticipant) {
+                        downloadFlyer(generatedFlyer, `${selectedParticipant.name}-flyer.png`);
+                    }
+                }}
+                disabled={!generatedFlyer}
+            >
                 <Printer className="mr-2 h-4 w-4" />
-                Print
+                Download PNG
             </Button>
             <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
           </DialogFooter>

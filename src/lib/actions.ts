@@ -6,10 +6,10 @@ import { MongoClient, ObjectId } from "mongodb";
 import type { Event, Participant } from "./types";
 
 const ParticipantSchema = z.object({
-  name: z.string().min(2),
-  organization: z.string().min(2),
-  contact: z.string().email(),
-  interests: z.string().min(10),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  organization: z.string().min(2, { message: "Organization must be at least 2 characters." }),
+  contact: z.string().email({ message: "Please enter a valid email address." }),
+  phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
 });
 
@@ -141,20 +141,60 @@ export async function deleteEvent(id: string) {
     }
 }
 
-export async function getParticipants(): Promise<Participant[]> {
+export async function getParticipants(): Promise<(Participant & { eventName: string })[]> {
    try {
     const db = await getDb();
     const participants = await db.collection("participants").find({}).toArray();
+    
+    // Get all events to map event names
+    const events = await db.collection("events").find({}).toArray();
+    const eventMap = new Map(events.map(e => [e._id.toString(), e.name]));
+    
     return participants.map((p) => ({
       id: p._id.toString(),
       name: p.name,
       organization: p.organization,
       contact: p.contact,
-      interests: p.interests,
+      phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
+      eventName: eventMap.get(p.eventId.toString()) || "Unknown Event",
     }));
    } catch(error) {
      console.error("Error fetching participants:", error);
+     return [];
+   }
+}
+
+export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventDate: string; eventTheme: string })[]> {
+   if (!ObjectId.isValid(eventId)) {
+     return [];
+   }
+
+   try {
+    const db = await getDb();
+    const participants = await db.collection("participants").find({ 
+      eventId: new ObjectId(eventId) 
+    }).toArray();
+    
+    // Get the specific event to get its details
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    const eventName = event?.name || "Unknown Event";
+    const eventDate = event?.date || "";
+    const eventTheme = event?.description || "";
+    
+    return participants.map((p) => ({
+      id: p._id.toString(),
+      name: p.name,
+      organization: p.organization,
+      contact: p.contact,
+      phone: p.phone || p.interests, // Handle both old and new field names
+      eventId: p.eventId.toString(),
+      eventName: eventName,
+      eventDate: eventDate,
+      eventTheme: eventTheme,
+    }));
+   } catch(error) {
+     console.error("Error fetching participants for event:", error);
      return [];
    }
 }

@@ -14,6 +14,6 @@ export interface Participant {
   name: string;
   organization: string;
   contact: string;
-  interests: string;
+  phone: string;
   eventId: string;
 }

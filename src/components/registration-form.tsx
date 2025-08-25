@@ -29,8 +29,8 @@ const formSchema = z.object({
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  interests: z.string().min(10, {
-    message: "Please tell us a bit about your interests.",
+  phone: z.string().min(11, {
+    message: "Please enter a valid phone number.",
   }),
 });
 
@@ -44,7 +44,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
       name: "",
       organization: "",
       contact: "",
-      interests: "",
+      phone: "",
     },
   });
 
@@ -83,19 +83,25 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
-          name="organization"
+          name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Organization</FormLabel>
+              <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <Input placeholder="Acme Inc." {...field} />
+                <Input
+                  placeholder="080300000"
+                  type="tel"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
         <FormField
           control={form.control}
           name="contact"
@@ -109,28 +115,23 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
-          name="interests"
+          name="organization"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Your Interests</FormLabel>
+              <FormLabel>Organization</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Tell us what topics you're passionate about (e.g., AI, product design, etc.)"
-                  className="resize-none"
-                  {...field}
-                />
+                <Input placeholder="Nigerian Meteorological Agency" {...field} />
               </FormControl>
-              <FormDescription>
-                This helps us personalize your event experience.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Registering..." : "Complete Registration"}
+            {form.formState.isSubmitting ? "Registering..." : "Register"}
         </Button>
       </form>
     </Form>

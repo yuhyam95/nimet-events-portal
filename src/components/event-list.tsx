@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -197,6 +198,16 @@ export function EventList({
                   Edit Event
                 </Button>
                 <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  asChild
+                >
+                  <Link href={`/admin/events/${event.id}/participants`}>
+                    View Participants
+                  </Link>
+                </Button>
+                <Button 
                   variant="destructive" 
                   size="sm" 
                   className="w-full"
@@ -241,7 +252,11 @@ export function EventList({
                           <DropdownMenuItem onClick={() => setEditingEvent(event)}>
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem>View Participants</DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/events/${event.id}/participants`}>
+                              View Participants
+                            </Link>
+                          </DropdownMenuItem>
                            <DropdownMenuItem 
                              className="text-destructive"
                              onClick={() => setDeletingEvent(event)}

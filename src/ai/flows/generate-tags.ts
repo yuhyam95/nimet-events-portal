@@ -13,7 +13,7 @@ import {z} from 'genkit';
 const GenerateParticipantTagsInputSchema = z.object({
   name: z.string().describe('The name of the participant.'),
   organization: z.string().describe('The organization the participant belongs to.'),
-  interests: z.string().describe('The interests of the participant.'),
+  phone: z.string().describe('The phone number of the participant.'),
   contactDetails: z.string().describe('The contact details of the participant.'),
 });
 export type GenerateParticipantTagsInput = z.infer<
@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
 
   Participant Name: {{{name}}}
   Organization: {{{organization}}}
-  Interests: {{{interests}}}
+  Phone: {{{phone}}}
   Contact Details: {{{contactDetails}}}
 
   Tag Content Instructions:
@@ -54,7 +54,7 @@ const prompt = ai.definePrompt({
   - Make it easily readable for other attendees.
 
   Personalized Message Instructions:
-  - Reference their interests to create a connection.
+  - Reference their phone number to create a connection.
   - Keep the message concise and friendly.
   - Should reference their contact details in some way.
 
