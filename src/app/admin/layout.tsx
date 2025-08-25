@@ -1,61 +1,82 @@
 import {
-    SidebarProvider,
-    Sidebar,
-    SidebarHeader,
-    SidebarContent,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
-    SidebarInset,
-} from "@/components/ui/sidebar"
-import { Users, Calendar, UserCog } from "lucide-react";
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  SidebarTrigger,
+  SidebarTitle,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
+import { Users, Calendar, UserCog, Bot } from "lucide-react";
 import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function AdminLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode
+  children: React.ReactNode;
 }) {
-    return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarHeader>
-                    {/* Could add a logo or title here */}
-                </SidebarHeader>
-                <SidebarContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                                <Link href="/admin/events">
-                                    <Calendar />
-                                    <span>Events</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive>
-                                <Link href="/admin/participants">
-                                    <Users />
-                                    <span>Participants</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
-                                <Link href="/admin/users">
-                                    <UserCog />
-                                    <span>Users</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarContent>
-            </Sidebar>
-            <SidebarInset>
-                <div className="p-4 sm:p-6 lg:p-8">
-                    {children}
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <Bot className="w-8 h-8 text-primary" />
+            <SidebarTitle>Admin Panel</SidebarTitle>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/admin/events">
+                  <Calendar />
+                  <span>Events</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive>
+                <Link href="/admin/participants">
+                  <Users />
+                  <span>Participants</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/admin/users">
+                  <UserCog />
+                  <span>Users</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                    <AvatarImage src="https://placehold.co/100x100.png" alt="Admin" data-ai-hint="profile picture" />
+                    <AvatarFallback>A</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                    <span className="font-semibold text-sm">Admin User</span>
+                    <span className="text-xs text-muted-foreground">admin@nimet.com</span>
                 </div>
-            </SidebarInset>
-        </SidebarProvider>
-    )
+            </div>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <header className="p-4 sm:p-6 lg:p-8 flex items-center gap-4 md:hidden border-b">
+            <SidebarTrigger />
+            <h1 className="text-xl font-semibold">Dashboard</h1>
+        </header>
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
