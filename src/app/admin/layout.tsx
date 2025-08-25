@@ -8,7 +8,7 @@ import {
     SidebarMenuButton,
     SidebarInset,
 } from "@/components/ui/sidebar"
-import { Users } from "lucide-react";
+import { Users, Calendar, UserCog } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminLayout({
@@ -25,10 +25,26 @@ export default function AdminLayout({
                 <SidebarContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                                <Link href="/admin/events">
+                                    <Calendar />
+                                    <span>Events</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive>
                                 <Link href="/admin/participants">
                                     <Users />
                                     <span>Participants</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild>
+                                <Link href="/admin/users">
+                                    <UserCog />
+                                    <span>Users</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
