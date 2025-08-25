@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +33,7 @@ import { generateParticipantTags } from "@/ai/flows/generate-tags";
 import type { Participant } from "@/lib/types";
 import type { GenerateParticipantTagsOutput } from "@/ai/flows/generate-tags";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortKey = keyof Participant;
 
@@ -52,6 +54,7 @@ export function ParticipantList({
   const [generatedContent, setGeneratedContent] = React.useState<GenerateParticipantTagsOutput | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleSort = (key: SortKey) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -125,20 +128,39 @@ export function ParticipantList({
     </TableHead>
   );
 
-  return (
-    <>
-      <div className="flex items-center py-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search participants..."
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-      <div className="rounded-md border">
+  const renderMobileList = () => (
+    <div className="space-y-4">
+      {sortedAndFilteredParticipants.map((participant) => (
+        <Card key={participant.id}>
+          <CardHeader>
+            <CardTitle>{participant.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm">
+              <span className="font-semibold">Organization: </span>
+              {participant.organization}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Contact: </span>
+              {participant.contact}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4 w-full"
+              onClick={() => handleGenerateTag(participant)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Tag
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderDesktopTable = () => (
+     <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -173,6 +195,23 @@ export function ParticipantList({
           </TableBody>
         </Table>
       </div>
+  )
+
+  return (
+    <>
+      <div className="flex items-center py-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search participants..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+     
+      {isMobile ? renderMobileList() : renderDesktopTable()}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg">
