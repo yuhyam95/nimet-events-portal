@@ -567,6 +567,7 @@ const SidebarMenuButton = React.forwardRef<
   ) => {
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
+    const childs = React.Children.toArray(children)
 
     const button = (
       <Comp
@@ -577,13 +578,13 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        {children}
-        <span className="group-data-[state=collapsed]:hidden duration-300">{props.children[1]}</span>
+        {childs[0]}
+        <span className="group-data-[state=collapsed]:hidden duration-300">{childs[1]}</span>
       </Comp>
     )
 
     if (!tooltip) {
-      tooltip = props.children[1]
+      tooltip = childs[1]
     }
     
     if (typeof tooltip === "string") {
@@ -775,3 +776,5 @@ export {
   SidebarTitle,
   useSidebar,
 }
+
+    
