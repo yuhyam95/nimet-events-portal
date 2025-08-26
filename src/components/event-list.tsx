@@ -40,6 +40,7 @@ import {
   ChevronDown,
   ChevronUp,
   PlusCircle,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,7 +51,7 @@ import {
 import type { Event } from "@/lib/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, parseISO } from "date-fns";
-import { deleteEvent } from "@/lib/actions";
+import { deleteEvent, getEvents } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 
 type SortKey = keyof Event;
@@ -79,13 +80,11 @@ const formatEventDate = (dateString: string): string => {
   }
 };
 
-export function EventList({
-  events,
-}: {
-  events: Event[];
-}) {
+export function EventList() {
   const router = useRouter();
   const { toast } = useToast();
+  const [events, setEvents] = React.useState<Event[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortConfig, setSortConfig] = React.useState<{
     key: SortKey;
@@ -95,6 +94,28 @@ export function EventList({
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [deletingEvent, setDeletingEvent] = React.useState<Event | null>(null);
   const isMobile = useIsMobile();
+
+  // Fetch events on component mount
+  React.useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      const fetchedEvents = await getEvents();
+      setEvents(fetchedEvents);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load events. Please refresh the page.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSort = (key: SortKey) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -128,8 +149,8 @@ export function EventList({
   const onEventAdded = () => {
     setIsAddEventOpen(false);
     setEditingEvent(null);
-    // Refresh the page to show the new event
-    router.refresh();
+    // Refresh the events list to show the updated data
+    fetchEvents();
   }
 
   const handleDeleteEvent = async () => {
@@ -142,7 +163,8 @@ export function EventList({
         description: "The event has been successfully deleted.",
       });
       setDeletingEvent(null);
-      router.refresh();
+      // Refresh the events list to show the updated data
+      fetchEvents();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -286,6 +308,15 @@ export function EventList({
       </div>
   )
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading events...</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex items-center justify-between py-4">
@@ -307,7 +338,7 @@ export function EventList({
       {isMobile ? renderMobileList() : renderDesktopTable()}
 
       <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Add a New Event</DialogTitle>
                 <DialogDescription>
@@ -321,7 +352,7 @@ export function EventList({
       </Dialog>
 
       <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Edit Event</DialogTitle>
                 <DialogDescription>

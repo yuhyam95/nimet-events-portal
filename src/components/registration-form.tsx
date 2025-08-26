@@ -94,7 +94,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="Full Name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -129,7 +129,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             <FormItem>
               <FormLabel>Contact Email</FormLabel>
               <FormControl>
-                <Input placeholder="john.doe@email.com" {...field} />
+                <Input placeholder="Email" {...field} />
               </FormControl>
               <FormDescription>
                 Each email address can only be used once per event.
@@ -146,7 +146,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             <FormItem>
               <FormLabel>Organization</FormLabel>
               <FormControl>
-                <Input placeholder="Nigerian Meteorological Agency" {...field} />
+                <Input placeholder="Name of your organization" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

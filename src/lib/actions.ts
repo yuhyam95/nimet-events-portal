@@ -16,7 +16,7 @@ const ParticipantSchema = z.object({
 
 const EventSchema = z.object({
     name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-    slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-z0-9-]+$/, { message: "URL slug can only contain lowercase letters, numbers, and hyphens." }),
+    slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-zA-Z0-9-]+$/, { message: "URL slug can only contain letters, numbers, and hyphens." }),
     startDate: z.string().min(1, { message: "Start date is required." }),
     endDate: z.string().min(1, { message: "End date is required." }),
     location: z.string().min(3, { message: "Location must be at least 3 characters." }),

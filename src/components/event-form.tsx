@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-  slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-z0-9-]+$/, { message: "URL slug can only contain lowercase letters, numbers, and hyphens." }),
+  slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-zA-Z0-9-]+$/, { message: "URL slug can only contain letters, numbers, and hyphens." }),
   startDate: z.date({ required_error: "Start date is required." }),
   endDate: z.date({ required_error: "End date is required." }),
   location: z.string().min(3, { message: "Location must be at least 3 characters." }),
@@ -47,8 +47,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     defaultValues: {
       name: event?.name || "",
       slug: event?.slug || "",
-      startDate: event?.startDate ? new Date(event.startDate) : undefined,
-      endDate: event?.endDate ? new Date(event.endDate) : undefined,
+      startDate: event?.startDate ? new Date(event.startDate + 'T00:00:00') : undefined,
+      endDate: event?.endDate ? new Date(event.endDate + 'T00:00:00') : undefined,
       location: event?.location || "",
       theme: event?.description || "",
     },
@@ -56,10 +56,18 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      // Format dates to YYYY-MM-DD without timezone issues
+      const formatDateToYYYYMMDD = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const eventData = {
         ...values,
-        startDate: values.startDate.toISOString().split('T')[0], // Convert start date to string format
-        endDate: values.endDate.toISOString().split('T')[0], // Convert end date to string format
+        startDate: formatDateToYYYYMMDD(values.startDate), // Convert start date to string format
+        endDate: formatDateToYYYYMMDD(values.endDate), // Convert end date to string format
         description: values.theme || "", // Map theme to description for backend compatibility
       };
       
@@ -90,7 +98,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-full">
         <FormField
           control={form.control}
           name="name"
@@ -111,10 +119,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             <FormItem>
               <FormLabel>URL Slug</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. annual-tech-conference" {...field} />
+                <Input placeholder="e.g. Annual-Tech-Conference" {...field} />
               </FormControl>
               <FormDescription>
-                This will be used in the URL: events.nimet.gov.ng/{field.value || "your-slug"}
+                This will be used in the URL: events.nimet.gov.ng/{field.value || "your-slug"}. Can contain letters, numbers, and hyphens.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -225,7 +233,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
               <FormControl>
                 <Textarea
                   placeholder="Enter the event theme or leave blank"
-                  className="resize-none"
+                  className="resize-none min-h-[80px]"
                   {...field}
                 />
               </FormControl>
@@ -233,7 +241,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+        <Button type="submit" className="w-full mt-6" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting 
               ? (event?.id ? "Updating..." : "Creating...") 
               : (event?.id ? "Update Event" : "Create Event")
