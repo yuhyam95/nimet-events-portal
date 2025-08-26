@@ -59,11 +59,28 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
       // For this demo, we'll redirect back home after a short delay.
       setTimeout(() => router.push('/'), 2000);
     } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: "Could not complete your registration. Please try again.",
-      });
+      const errorMessage = error instanceof Error ? error.message : "Could not complete your registration. Please try again.";
+      
+      // Check for specific duplicate errors and provide user-friendly messages
+      if (errorMessage.includes("email address has already registered")) {
+        toast({
+          variant: "destructive",
+          title: "Email Already Registered",
+          description: "This email address has already been used to register for this event. Please use a different email address.",
+        });
+      } else if (errorMessage.includes("phone number has already registered")) {
+        toast({
+          variant: "destructive",
+          title: "Phone Number Already Registered",
+          description: "This phone number has already been used to register for this event. Please use a different phone number.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: errorMessage,
+        });
+      }
     }
   }
 
@@ -97,6 +114,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                Each phone number can only be used once per event.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -111,6 +131,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
               <FormControl>
                 <Input placeholder="john.doe@email.com" {...field} />
               </FormControl>
+              <FormDescription>
+                Each email address can only be used once per event.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

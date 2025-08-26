@@ -275,13 +275,34 @@ export async function addParticipant(data: unknown) {
 
   try {
     const db = await getDb();
+    
+    // Check if email already exists for this event
+    const existingEmail = await db.collection("participants").findOne({ 
+      eventId: new ObjectId(eventId),
+      contact: participantData.contact 
+    });
+    
+    if (existingEmail) {
+      throw new Error("A participant with this email address has already registered for this event.");
+    }
+    
+    // Check if phone number already exists for this event
+    const existingPhone = await db.collection("participants").findOne({ 
+      eventId: new ObjectId(eventId),
+      phone: participantData.phone 
+    });
+    
+    if (existingPhone) {
+      throw new Error("A participant with this phone number has already registered for this event.");
+    }
+    
     await db.collection("participants").insertOne({
       ...participantData,
       eventId: new ObjectId(eventId)
     });
   } catch (error) {
     console.error("Failed to add participant:", error);
-    throw new Error("Database operation failed. Could not add participant.");
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add participant.");
   }
 }
 
