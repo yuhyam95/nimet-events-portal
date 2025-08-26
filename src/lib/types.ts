@@ -19,3 +19,20 @@ export interface Participant {
   phone: string;
   eventId: string;
 }
+
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NewUser = Omit<User, "id" | "createdAt" | "updatedAt">;
+
+export interface UserWithPassword extends User {
+  password: string;
+}
+
+export type CreateUserData = Omit<UserWithPassword, "id" | "createdAt" | "updatedAt">;

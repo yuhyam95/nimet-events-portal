@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,7 +15,7 @@ import {
   SidebarTitle,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Users, Calendar, UserCog, Bot, LogOut } from "lucide-react";
+import { Users, Calendar, UserCog, Bot, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
@@ -56,6 +57,14 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/profile')}>
+                  <Link href="/admin/profile">
+                    <User />
+                    <span>Profile</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
@@ -65,7 +74,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                       <AvatarFallback>A</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                      <span className="font-semibold text-sm">Admin User</span>
+                      <span className="font-semibold text-sm">{user?.fullName || "Admin User"}</span>
                       <span className="text-xs text-muted-foreground">{user?.email}</span>
                   </div>
                   <button
@@ -106,7 +115,15 @@ function AdminLayoutContent({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Always call useEffect to avoid Rules of Hooks violation
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && pathname !== '/admin/login') {
+      router.push('/admin/login');
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
 
   // If on login page, don't show sidebar
   if (pathname === '/admin/login') {
@@ -117,20 +134,36 @@ function AdminLayoutContent({
     );
   }
 
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <UnauthenticatedLayout>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </UnauthenticatedLayout>
+    );
+  }
+
+  // Show loading or redirect if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <UnauthenticatedLayout>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Redirecting to login...</p>
+        </div>
+      </UnauthenticatedLayout>
+    );
+  }
+
   return (
-    <>
-      {isAuthenticated ? (
-        <AuthenticatedLayout>
-          <ProtectedRoute>
-            {children}
-          </ProtectedRoute>
-        </AuthenticatedLayout>
-      ) : (
-        <UnauthenticatedLayout>
-          {children}
-        </UnauthenticatedLayout>
-      )}
-    </>
+    <AuthenticatedLayout>
+      <ProtectedRoute>
+        {children}
+      </ProtectedRoute>
+    </AuthenticatedLayout>
   );
 }
 

@@ -3,7 +3,8 @@
 
 import { z } from "zod";
 import { MongoClient, ObjectId } from "mongodb";
-import type { Event, Participant } from "./types";
+import type { Event, Participant, User, CreateUserData } from "./types";
+import bcrypt from "bcryptjs";
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -20,6 +21,24 @@ const EventSchema = z.object({
     endDate: z.string().min(1, { message: "End date is required." }),
     location: z.string().min(3, { message: "Location must be at least 3 characters." }),
     description: z.string().optional(),
+});
+
+const UserSchema = z.object({
+  fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  role: z.enum(['admin', 'user'], { message: "Role must be either 'admin' or 'user'." }),
+});
+
+const UpdateUserSchema = z.object({
+  fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  role: z.enum(['admin', 'user'], { message: "Role must be either 'admin' or 'user'." }),
+});
+
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Current password is required." }),
+  newPassword: z.string().min(6, { message: "New password must be at least 6 characters." }),
 });
 
 
@@ -263,5 +282,253 @@ export async function addParticipant(data: unknown) {
   } catch (error) {
     console.error("Failed to add participant:", error);
     throw new Error("Database operation failed. Could not add participant.");
+  }
+}
+
+export async function getUsers(): Promise<User[]> {
+  try {
+    const db = await getDb();
+    const users = await db.collection("users").find({}).sort({ createdAt: -1 }).toArray();
+    return users.map((user) => ({
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
+  try {
+    const db = await getDb();
+    const user = await db.collection("users").findOne({ _id: new ObjectId(id) });
+    if (!user) return null;
+    return {
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  } catch (error) {
+    console.error(`Error fetching user by id ${id}:`, error);
+    return null;
+  }
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  try {
+    const db = await getDb();
+    const user = await db.collection("users").findOne({ email });
+    if (!user) return null;
+    return {
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  } catch (error) {
+    console.error(`Error fetching user by email ${email}:`, error);
+    return null;
+  }
+}
+
+export async function createUser(data: unknown): Promise<User> {
+  const validation = UserSchema.safeParse(data);
+  if (!validation.success) {
+    throw new Error("Invalid user data");
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check if email already exists
+    const existingUser = await db.collection("users").findOne({ email: validation.data.email });
+    if (existingUser) {
+      throw new Error("A user with this email already exists.");
+    }
+    
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(validation.data.password, 12);
+    
+    const now = new Date().toISOString();
+    const userData = {
+      ...validation.data,
+      password: hashedPassword,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    const result = await db.collection("users").insertOne(userData);
+    
+    return {
+      id: result.insertedId.toString(),
+      fullName: validation.data.fullName,
+      email: validation.data.email,
+      role: validation.data.role,
+      createdAt: now,
+      updatedAt: now,
+    };
+  } catch (error) {
+    console.error("Failed to create user:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not create user.");
+  }
+}
+
+export async function updateUser(id: string, data: unknown): Promise<User> {
+  if (!ObjectId.isValid(id)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const validation = UpdateUserSchema.safeParse(data);
+  if (!validation.success) {
+    throw new Error("Invalid user data");
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check if email already exists for a different user
+    const existingUser = await db.collection("users").findOne({ 
+      email: validation.data.email,
+      _id: { $ne: new ObjectId(id) }
+    });
+    if (existingUser) {
+      throw new Error("A user with this email already exists.");
+    }
+    
+    const now = new Date().toISOString();
+    const result = await db.collection("users").updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $set: {
+          ...validation.data,
+          updatedAt: now,
+        }
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      throw new Error("User not found");
+    }
+    
+    const updatedUser = await getUserById(id);
+    if (!updatedUser) {
+      throw new Error("Failed to retrieve updated user");
+    }
+    
+    return updatedUser;
+  } catch (error) {
+    console.error("Failed to update user:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update user.");
+  }
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  if (!ObjectId.isValid(id)) {
+    throw new Error("Invalid user ID");
+  }
+
+  try {
+    const db = await getDb();
+    const result = await db.collection("users").deleteOne({ _id: new ObjectId(id) });
+    
+    if (result.deletedCount === 0) {
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    console.error("Failed to delete user:", error);
+    throw new Error("Database operation failed. Could not delete user.");
+  }
+}
+
+export async function changePassword(id: string, data: unknown): Promise<void> {
+  if (!ObjectId.isValid(id)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const validation = ChangePasswordSchema.safeParse(data);
+  if (!validation.success) {
+    throw new Error("Invalid password data");
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Get the user to verify current password
+    const user = await db.collection("users").findOne({ _id: new ObjectId(id) });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(validation.data.currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new Error("Current password is incorrect");
+    }
+    
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(validation.data.newPassword, 12);
+    
+    const now = new Date().toISOString();
+    const result = await db.collection("users").updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $set: {
+          password: hashedNewPassword,
+          updatedAt: now,
+        }
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    console.error("Failed to change password:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not change password.");
+  }
+}
+
+export async function authenticateUser(email: string, password: string): Promise<User | null> {
+  try {
+    const db = await getDb();
+    const user = await db.collection("users").findOne({ email });
+    
+    if (!user) {
+      return null;
+    }
+    
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return null;
+    }
+    
+    const userData = {
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    
+    return userData;
+  } catch (error) {
+    console.error("Authentication error:", error);
+    return null;
   }
 }

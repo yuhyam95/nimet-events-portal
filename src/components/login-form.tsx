@@ -46,6 +46,7 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const success = await login(values.email, values.password);
+      
       if (success) {
         toast({
           title: "Login Successful",
@@ -60,6 +61,7 @@ export function LoginForm() {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login Error",
