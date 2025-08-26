@@ -6,13 +6,13 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface EventParticipantsPageProps {
-  params: {
+  params: Promise<{
     eventId: string;
-  };
+  }>;
 }
 
 export default async function EventParticipantsPage({ params }: EventParticipantsPageProps) {
-  const { eventId } = params;
+  const { eventId } = await params;
   
   const event = await getEventById(eventId);
   if (!event) {

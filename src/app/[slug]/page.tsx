@@ -29,8 +29,9 @@ const formatEventDate = (dateString: string) => {
   }
 };
 
-export default async function SlugPage({ params }: { params: { slug: string } }) {
-  const event = await getEventBySlug(params.slug);
+export default async function SlugPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
 
   if (!event) {
     notFound();

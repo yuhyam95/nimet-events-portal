@@ -29,8 +29,9 @@ const formatEventDate = (dateString: string) => {
   }
 };
 
-export default async function RegisterPage({ params }: { params: { eventId: string } }) {
-  const event = await getEventById(params.eventId);
+export default async function RegisterPage({ params }: { params: Promise<{ eventId: string }> }) {
+  const { eventId } = await params;
+  const event = await getEventById(eventId);
 
   if (!event) {
     notFound();
