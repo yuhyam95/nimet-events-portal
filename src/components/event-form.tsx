@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,7 +27,9 @@ import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-  date: z.date({ required_error: "Date is required." }),
+  slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-z0-9-]+$/, { message: "URL slug can only contain lowercase letters, numbers, and hyphens." }),
+  startDate: z.date({ required_error: "Start date is required." }),
+  endDate: z.date({ required_error: "End date is required." }),
   location: z.string().min(3, { message: "Location must be at least 3 characters." }),
   theme: z.string().optional(),
 });
@@ -43,7 +46,9 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: event?.name || "",
-      date: event?.date ? new Date(event.date) : undefined,
+      slug: event?.slug || "",
+      startDate: event?.startDate ? new Date(event.startDate) : undefined,
+      endDate: event?.endDate ? new Date(event.endDate) : undefined,
       location: event?.location || "",
       theme: event?.description || "",
     },
@@ -53,7 +58,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     try {
       const eventData = {
         ...values,
-        date: values.date.toISOString().split('T')[0], // Convert date to string format
+        startDate: values.startDate.toISOString().split('T')[0], // Convert start date to string format
+        endDate: values.endDate.toISOString().split('T')[0], // Convert end date to string format
         description: values.theme || "", // Map theme to description for backend compatibility
       };
       
@@ -100,10 +106,26 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         />
         <FormField
           control={form.control}
-          name="date"
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL Slug</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. annual-tech-conference" {...field} />
+              </FormControl>
+              <FormDescription>
+                This will be used in the URL: events.nimet.gov.ng/{field.value || "your-slug"}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="startDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
+              <FormLabel>Start Date</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -117,7 +139,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                       {field.value ? (
                         format(field.value, "PPP")
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Pick a start date</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -131,6 +153,48 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                     disabled={(date) =>
                       date < new Date()
                     }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="endDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>End Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick an end date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => {
+                      const startDate = form.getValues("startDate");
+                      return date < (startDate || new Date());
+                    }}
                     initialFocus
                   />
                 </PopoverContent>

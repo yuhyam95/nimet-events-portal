@@ -1,5 +1,5 @@
 import { RegistrationForm } from "@/components/registration-form";
-import { getEventById } from "@/lib/actions";
+import { getEventBySlug } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CalendarDays, MapPin } from "lucide-react";
@@ -29,8 +29,8 @@ const formatEventDate = (dateString: string) => {
   }
 };
 
-export default async function RegisterPage({ params }: { params: { eventId: string } }) {
-  const event = await getEventById(params.eventId);
+export default async function SlugPage({ params }: { params: { slug: string } }) {
+  const event = await getEventBySlug(params.slug);
 
   if (!event) {
     notFound();
@@ -51,20 +51,20 @@ export default async function RegisterPage({ params }: { params: { eventId: stri
                   />
                 </div>
                 <CardTitle className="text-3xl font-headline">{event.name}</CardTitle>
-                 <CardDescription className="pt-2">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                        <CalendarDays className="h-4 w-4" />
-                        <span>Start: {formatEventDate(event.startDate)}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground mt-1">
-                        <CalendarDays className="h-4 w-4" />
-                        <span>End: {formatEventDate(event.endDate)}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground mt-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
-                    </div>
-                </CardDescription>
+                                  <CardDescription className="pt-2">
+                     <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                         <CalendarDays className="h-4 w-4" />
+                         <span>Start: {formatEventDate(event.startDate)}</span>
+                     </div>
+                     <div className="flex items-center justify-center gap-2 text-muted-foreground mt-1">
+                         <CalendarDays className="h-4 w-4" />
+                         <span>End: {formatEventDate(event.endDate)}</span>
+                     </div>
+                     <div className="flex items-center justify-center gap-2 text-muted-foreground mt-1">
+                         <MapPin className="h-4 w-4" />
+                         <span>{event.location}</span>
+                     </div>
+                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <RegistrationForm eventId={event.id} />

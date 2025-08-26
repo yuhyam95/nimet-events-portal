@@ -178,8 +178,12 @@ export function EventList({
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm">
-              <span className="font-semibold">Date: </span>
-              {formatEventDate(event.date)}
+              <span className="font-semibold">Start Date: </span>
+              {formatEventDate(event.startDate)}
+            </p>
+            <p className="text-sm">
+              <span className="font-semibold">End Date: </span>
+              {formatEventDate(event.endDate)}
             </p>
             <p className="text-sm">
               <span className="font-semibold">Location: </span>
@@ -228,7 +232,8 @@ export function EventList({
           <TableHeader>
             <TableRow>
               <SortableHeader sortKey="name">Name</SortableHeader>
-              <SortableHeader sortKey="date">Date</SortableHeader>
+              <SortableHeader sortKey="startDate">Start Date</SortableHeader>
+              <SortableHeader sortKey="endDate">End Date</SortableHeader>
               <SortableHeader sortKey="location">Location</SortableHeader>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -238,7 +243,8 @@ export function EventList({
               sortedAndFilteredEvents.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell className="font-medium">{event.name}</TableCell>
-                  <TableCell>{formatEventDate(event.date)}</TableCell>
+                  <TableCell>{formatEventDate(event.startDate)}</TableCell>
+                  <TableCell>{formatEventDate(event.endDate)}</TableCell>
                   <TableCell>{event.location}</TableCell>
                   <TableCell>
                      <DropdownMenu>
@@ -270,7 +276,7 @@ export function EventList({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>

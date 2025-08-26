@@ -22,6 +22,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import Image from "next/image";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -31,6 +33,7 @@ const formSchema = z.object({
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,20 +43,44 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock login logic
-    console.log("Admin login attempt:", values.email);
-    toast({
-      title: "Login Successful",
-      description: "Redirecting to the admin dashboard...",
-    });
-    router.push("/admin/participants");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const success = await login(values.email, values.password);
+      if (success) {
+        toast({
+          title: "Login Successful",
+          description: "Redirecting to the admin dashboard...",
+        });
+        router.push("/admin/events");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Login Error",
+        description: "An error occurred during login. Please try again.",
+      });
+    }
   }
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
+      <CardHeader className="text-center">
+        <div className="flex justify-center mb-4">
+          <Image 
+            src="/nimet-logo.png" 
+            alt="NIMET Logo" 
+            width={200} 
+            height={200} 
+            className="object-contain"
+          />
+        </div>
+        <CardTitle className="text-2xl font-headline">Events Management Portal</CardTitle>
         <CardDescription>
           Enter your credentials to access the dashboard.
         </CardDescription>
@@ -68,7 +95,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="admin@nimet.com" {...field} />
+                    <Input type="email" placeholder="Email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

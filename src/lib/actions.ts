@@ -15,7 +15,9 @@ const ParticipantSchema = z.object({
 
 const EventSchema = z.object({
     name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-    date: z.string().min(1, { message: "Date is required." }),
+    slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-z0-9-]+$/, { message: "URL slug can only contain lowercase letters, numbers, and hyphens." }),
+    startDate: z.string().min(1, { message: "Start date is required." }),
+    endDate: z.string().min(1, { message: "End date is required." }),
     location: z.string().min(3, { message: "Location must be at least 3 characters." }),
     description: z.string().optional(),
 });
@@ -47,11 +49,13 @@ async function getDb() {
 export async function getEvents(): Promise<Event[]> {
   try {
     const db = await getDb();
-    const events = await db.collection("events").find({}).sort({ date: 1 }).toArray();
+    const events = await db.collection("events").find({}).sort({ startDate: 1 }).toArray();
     return events.map((event) => ({
       id: event._id.toString(),
       name: event.name,
-      date: event.date,
+      slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+      startDate: event.startDate || event.date, // Handle both old and new field names
+      endDate: event.endDate || event.date, // Handle both old and new field names
       location: event.location,
       description: event.description,
     }));
@@ -72,12 +76,34 @@ export async function getEventById(id: string): Promise<Event | null> {
     return {
       id: event._id.toString(),
       name: event.name,
-      date: event.date,
+      slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+      startDate: event.startDate || event.date, // Handle both old and new field names
+      endDate: event.endDate || event.date, // Handle both old and new field names
       location: event.location,
       description: event.description,
     };
   } catch (error) {
     console.error(`Error fetching event by id ${id}:`, error);
+    return null;
+  }
+}
+
+export async function getEventBySlug(slug: string): Promise<Event | null> {
+  try {
+    const db = await getDb();
+    const event = await db.collection("events").findOne({ slug });
+    if (!event) return null;
+    return {
+      id: event._id.toString(),
+      name: event.name,
+      slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+      startDate: event.startDate || event.date, // Handle both old and new field names
+      endDate: event.endDate || event.date, // Handle both old and new field names
+      location: event.location,
+      description: event.description,
+    };
+  } catch (error) {
+    console.error(`Error fetching event by slug ${slug}:`, error);
     return null;
   }
 }
@@ -90,10 +116,17 @@ export async function addEvent(data: unknown) {
 
     try {
         const db = await getDb();
+        
+        // Check if slug already exists
+        const existingEvent = await db.collection("events").findOne({ slug: validation.data.slug });
+        if (existingEvent) {
+            throw new Error("An event with this URL slug already exists. Please choose a different slug.");
+        }
+        
         await db.collection("events").insertOne(validation.data);
     } catch (error) {
         console.error("Failed to add event:", error);
-        throw new Error("Database operation failed. Could not add event.");
+        throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add event.");
     }
 }
 
@@ -109,6 +142,16 @@ export async function updateEvent(id: string, data: unknown) {
 
     try {
         const db = await getDb();
+        
+        // Check if slug already exists for a different event
+        const existingEvent = await db.collection("events").findOne({ 
+            slug: validation.data.slug,
+            _id: { $ne: new ObjectId(id) }
+        });
+        if (existingEvent) {
+            throw new Error("An event with this URL slug already exists. Please choose a different slug.");
+        }
+        
         const result = await db.collection("events").updateOne(
             { _id: new ObjectId(id) },
             { $set: validation.data }
@@ -119,7 +162,7 @@ export async function updateEvent(id: string, data: unknown) {
         }
     } catch (error) {
         console.error("Failed to update event:", error);
-        throw new Error("Database operation failed. Could not update event.");
+        throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update event.");
     }
 }
 
