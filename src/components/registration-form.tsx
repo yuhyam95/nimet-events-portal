@@ -53,11 +53,11 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
       await addParticipant({ ...values, eventId });
       toast({
         title: "Registration Successful!",
-        description: "We've received your registration. See you at the event!",
+        description: "We've received your registration. Check your email for confirmation with event details and QR code!",
       });
       // In a real app, you would redirect or clear the form.
       // For this demo, we'll redirect back home after a short delay.
-      setTimeout(() => router.push('/'), 2000);
+      setTimeout(() => router.push('/'), 3000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Could not complete your registration. Please try again.";
       
@@ -94,7 +94,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Full Name" {...field} />
+                <Input placeholder="Surname First" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

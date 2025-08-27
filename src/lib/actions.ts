@@ -5,6 +5,7 @@ import { z } from "zod";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Event, Participant, User, CreateUserData } from "./types";
 import bcrypt from "bcryptjs";
+import { sendRegistrationEmail } from "./email-service";
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -300,6 +301,39 @@ export async function addParticipant(data: unknown) {
       ...participantData,
       eventId: new ObjectId(eventId)
     });
+
+    // Send confirmation email with QR code
+    try {
+      // Get event details for the email
+      const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+      if (event) {
+        const eventData: Event = {
+          id: event._id.toString(),
+          name: event.name,
+          slug: event.slug || event._id.toString(),
+          startDate: event.startDate || event.date,
+          endDate: event.endDate || event.date,
+          location: event.location,
+          description: event.description,
+        };
+
+        // Construct event URL
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+        const eventUrl = `${baseUrl}/${eventData.slug}`;
+
+        // Send email
+        await sendRegistrationEmail({
+          participantName: participantData.name,
+          participantEmail: participantData.contact,
+          event: eventData,
+          eventUrl: eventUrl,
+        });
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the registration
+      console.error("Failed to send registration email:", emailError);
+      // Note: We don't throw here to avoid failing the registration if email fails
+    }
   } catch (error) {
     console.error("Failed to add participant:", error);
     throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add participant.");
