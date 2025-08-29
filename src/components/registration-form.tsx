@@ -26,6 +26,9 @@ const formSchema = z.object({
   organization: z.string().min(2, {
     message: "Organization must be at least 2 characters.",
   }),
+  designation: z.string().min(2, {
+    message: "Designation must be at least 2 characters.",
+  }),
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -43,6 +46,7 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
     defaultValues: {
       name: "",
       organization: "",
+      designation: "",
       contact: "",
       phone: "",
     },
@@ -114,9 +118,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
+              {/* <FormDescription>
                 Each phone number can only be used once per event.
-              </FormDescription>
+              </FormDescription> */}
               <FormMessage />
             </FormItem>
           )}
@@ -131,9 +135,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
               <FormControl>
                 <Input placeholder="Email" {...field} />
               </FormControl>
-              <FormDescription>
+              {/* <FormDescription>
                 Each email address can only be used once per event.
-              </FormDescription>
+              </FormDescription> */}
               <FormMessage />
             </FormItem>
           )}
@@ -147,6 +151,20 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
               <FormLabel>Organization</FormLabel>
               <FormControl>
                 <Input placeholder="Name of your organization" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="designation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Designation</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. Manager, Director, Officer" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

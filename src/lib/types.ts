@@ -15,6 +15,7 @@ export interface Participant {
   id: string;
   name: string;
   organization: string;
+  designation: string;
   contact: string;
   phone: string;
   eventId: string;

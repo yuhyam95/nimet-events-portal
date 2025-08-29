@@ -167,6 +167,10 @@ export function ParticipantList({
               {participant.organization}
             </p>
             <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Designation: </span>
+              {participant.designation}
+            </p>
+            <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Contact: </span>
               {participant.contact}
             </p>
@@ -200,9 +204,9 @@ export function ParticipantList({
             <TableRow>
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
+              <SortableHeader sortKey="designation">Designation</SortableHeader>
               <SortableHeader sortKey="contact">Contact</SortableHeader>
               <SortableHeader sortKey="phone">Phone</SortableHeader>
-              <TableHead>Event</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -212,9 +216,9 @@ export function ParticipantList({
                 <TableRow key={participant.id}>
                   <TableCell className="font-medium">{participant.name}</TableCell>
                   <TableCell>{participant.organization}</TableCell>
+                  <TableCell>{participant.designation}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
-                  <TableCell className="text-muted-foreground">{participant.eventName}</TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
                       <Sparkles className="mr-2 h-4 w-4" />

@@ -10,6 +10,7 @@ import { sendRegistrationEmail } from "./email-service";
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   organization: z.string().min(2, { message: "Organization must be at least 2 characters." }),
+  designation: z.string().min(2, { message: "Designation must be at least 2 characters." }),
   contact: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
@@ -217,6 +218,7 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
       id: p._id.toString(),
       name: p.name,
       organization: p.organization,
+      designation: p.designation || "", // Handle missing designation field
       contact: p.contact,
       phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
@@ -249,6 +251,7 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       id: p._id.toString(),
       name: p.name,
       organization: p.organization,
+      designation: p.designation || "", // Handle missing designation field
       contact: p.contact,
       phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
