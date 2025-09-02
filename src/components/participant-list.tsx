@@ -40,7 +40,7 @@ type SortKey = keyof Participant;
 export function ParticipantList({
   initialParticipants,
 }: {
-  initialParticipants: (Participant & { eventName: string; eventDate: string; eventTheme: string })[];
+  initialParticipants: (Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string })[];
 }) {
   const [participants, setParticipants] = React.useState(initialParticipants);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -85,19 +85,22 @@ export function ParticipantList({
     );
   }, [participants, searchQuery, sortConfig]);
 
-  const handleGenerateTag = async (participant: Participant & { eventName: string; eventDate: string; eventTheme: string }) => {
+  const handleGenerateTag = async (participant: Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string }) => {
     setSelectedParticipant(participant);
     setIsDialogOpen(true);
     setIsLoading(true);
     setGeneratedFlyer(null);
     try {
         // Format the event date
-        const formattedDate = formatEventDate(participant.eventDate);
+        const formattedDate = formatEventDate(participant.eventStartDate);
+        const formattedEndDate = formatEventDate(participant.eventEndDate);
         
         const flyerDataUrl = await generateFlyer({
             eventName: participant.eventName,
             eventTheme: participant.eventTheme,
-            eventDate: formattedDate,
+            eventStartDate: formattedDate,
+            eventEndDate: formattedEndDate,
+            eventLocation: participant.eventLocation,
             participantName: participant.name,
         });
         setGeneratedFlyer(flyerDataUrl);

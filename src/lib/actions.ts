@@ -230,7 +230,7 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
    }
 }
 
-export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventDate: string; eventTheme: string })[]> {
+export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string })[]> {
    if (!ObjectId.isValid(eventId)) {
      return [];
    }
@@ -244,8 +244,10 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
     // Get the specific event to get its details
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     const eventName = event?.name || "Unknown Event";
-    const eventDate = event?.date || "";
+    const eventStartDate = event?.startDate || "";
+    const eventEndDate = event?.endDate || "";
     const eventTheme = event?.description || "";
+    const eventLocation = event?.location || "";
     
     return participants.map((p) => ({
       id: p._id.toString(),
@@ -256,8 +258,10 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
       eventName: eventName,
-      eventDate: eventDate,
+      eventStartDate: eventStartDate,
+      eventEndDate: eventEndDate,
       eventTheme: eventTheme,
+      eventLocation: eventLocation,
     }));
    } catch(error) {
      console.error("Error fetching participants for event:", error);
@@ -339,7 +343,17 @@ export async function addParticipant(data: unknown) {
     }
   } catch (error) {
     console.error("Failed to add participant:", error);
-    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add participant.");
+    
+    // Preserve specific business logic error messages
+    if (error instanceof Error) {
+      if (error.message.includes("already registered")) {
+        // Keep the specific duplicate registration messages
+        throw error;
+      }
+      throw new Error(error.message);
+    } else {
+      throw new Error("Database operation failed. Could not add participant.");
+    }
   }
 }
 
