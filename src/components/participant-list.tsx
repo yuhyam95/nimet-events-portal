@@ -47,7 +47,7 @@ export function ParticipantList({
   const [sortConfig, setSortConfig] = React.useState<{
     key: SortKey;
     direction: "ascending" | "descending";
-  } | null>({ key: "name", direction: "ascending" });
+  } | null>(null);
   
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedParticipant, setSelectedParticipant] = React.useState<Participant | null>(null);
