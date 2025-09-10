@@ -345,15 +345,15 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex flex-col gap-2 mt-4">
-              {/* <Button
+              <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
                 onClick={() => handleGenerateTag(participant)}
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                Flyer
-              </Button> */}
+                Generate Flyer
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -406,10 +406,10 @@ export function ParticipantList({
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-2">
-                      {/* <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateTag(participant)}>
                         <Sparkles className="mr-2 h-4 w-4" />
-                        Flyer
-                      </Button> */}
+                        Generate Flyer
+                      </Button>
                       <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateQRCode(participant)}>
                         <QrCode className="mr-2 h-4 w-4" />
                         QR Code
