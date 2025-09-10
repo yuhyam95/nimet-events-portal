@@ -1,9 +1,22 @@
 import QRCode from 'qrcode';
 
 // Simple encryption/decryption for participant IDs
-const ENCRYPTION_KEY = process.env.QR_ENCRYPTION_KEY || 'nimet-events-2024';
+const ENCRYPTION_KEY = process.env.QR_ENCRYPTION_KEY || 'nimet-events-2024-default-key';
+
+// Ensure the key is always defined
+if (!ENCRYPTION_KEY) {
+  throw new Error('QR_ENCRYPTION_KEY is not defined');
+}
 
 function simpleEncrypt(text: string): string {
+  console.log('ENCRYPTION_KEY:', ENCRYPTION_KEY);
+  console.log('ENCRYPTION_KEY length:', ENCRYPTION_KEY?.length);
+  console.log('text to encrypt:', text);
+  
+  if (!ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY is undefined');
+  }
+  
   let result = '';
   for (let i = 0; i < text.length; i++) {
     const charCode = text.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
@@ -27,6 +40,7 @@ function simpleDecrypt(encryptedText: string): string {
 }
 
 export function generateQRCodeData(participantId: string): string {
+  console.log('generateQRCodeData called with participantId:', participantId);
   const encryptedId = simpleEncrypt(participantId);
   return `nimet://attendance/${encryptedId}`;
 }
@@ -43,6 +57,7 @@ export function decryptQRCodeData(qrData: string): string {
 }
 
 export async function generateQRCode(participantId: string): Promise<string> {
+  console.log('generateQRCode called with participantId:', participantId);
   const qrData = generateQRCodeData(participantId);
   
   try {

@@ -32,8 +32,11 @@ import {
   ArrowDown,
   Download,
   QrCode,
+  Mail,
+  Send,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
+import { sendQRCodeToParticipant, sendQRCodesToAllParticipants } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
@@ -65,6 +68,8 @@ export function ParticipantList({
   const [selectedQRParticipant, setSelectedQRParticipant] = React.useState<Participant | null>(null);
   const [generatedQRCode, setGeneratedQRCode] = React.useState<string | null>(null);
   const [isQRLoading, setIsQRLoading] = React.useState(false);
+  const [isEmailLoading, setIsEmailLoading] = React.useState(false);
+  const [isBulkEmailLoading, setIsBulkEmailLoading] = React.useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -144,14 +149,92 @@ export function ParticipantList({
     }
   };
 
+  const handleSendQRCodeEmail = async (participant: Participant) => {
+    setIsEmailLoading(true);
+    try {
+      const result = await sendQRCodeToParticipant(participant.id, participant.eventId);
+      if (result.success) {
+        // Update the participant's qrEmailSent status locally
+        setParticipants(prev => prev.map(p => 
+          p.id === participant.id ? { ...p, qrEmailSent: true } : p
+        ));
+        
+        toast({
+          title: "Email Sent",
+          description: `QR code sent to ${participant.contact}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to send QR code email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send QR code email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEmailLoading(false);
+    }
+  };
+
+  const handleSendQRCodesToAll = async () => {
+    if (participants.length === 0) {
+      toast({
+        title: "No Participants",
+        description: "There are no participants to send QR codes to.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBulkEmailLoading(true);
+    try {
+      const result = await sendQRCodesToAllParticipants(participants[0].eventId);
+      if (result.success) {
+        // Update all participants' qrEmailSent status locally
+        // Note: This is a simplified approach - in a real app you might want to refresh from server
+        setParticipants(prev => prev.map(p => ({ ...p, qrEmailSent: true })));
+        
+        toast({
+          title: "Bulk Email Sent",
+          description: `QR codes sent to ${result.sent} participants. ${result.failed > 0 ? `${result.failed} failed.` : ''}`,
+        });
+        
+        if (result.errors.length > 0) {
+          console.error("Email errors:", result.errors);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send QR codes to participants",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send QR codes. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkEmailLoading(false);
+    }
+  };
+
   const sortedAndFilteredParticipants = React.useMemo(() => {
     let sortableItems = [...participants];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const aValue = a[sortConfig.key] ?? '';
+        const bValue = b[sortConfig.key] ?? '';
+        if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === "ascending" ? 1 : -1;
         }
         return 0;
@@ -262,7 +345,7 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex gap-2 mt-4">
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
@@ -270,7 +353,7 @@ export function ParticipantList({
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Flyer
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -279,6 +362,16 @@ export function ParticipantList({
               >
                 <QrCode className="mr-2 h-4 w-4" />
                 QR Code
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleSendQRCodeEmail(participant)}
+                disabled={isEmailLoading || participant.qrEmailSent}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {isEmailLoading ? "..." : participant.qrEmailSent ? "Sent" : "Email"}
               </Button>
             </div>
           </CardContent>
@@ -313,13 +406,22 @@ export function ParticipantList({
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
+                      {/* <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
                         <Sparkles className="mr-2 h-4 w-4" />
                         Flyer
-                      </Button>
+                      </Button> */}
                       <Button variant="outline" size="sm" onClick={() => handleGenerateQRCode(participant)}>
                         <QrCode className="mr-2 h-4 w-4" />
                         QR Code
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleSendQRCodeEmail(participant)}
+                        disabled={isEmailLoading || participant.qrEmailSent}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        {isEmailLoading ? "..." : participant.qrEmailSent ? "Sent" : "Email"}
                       </Button>
                     </div>
                   </TableCell>
@@ -381,6 +483,16 @@ export function ParticipantList({
         >
           <Download className="h-4 w-4" />
           Export CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSendQRCodesToAll}
+          disabled={isBulkEmailLoading}
+          className="flex items-center gap-2"
+        >
+          <Send className="h-4 w-4" />
+          {isBulkEmailLoading ? "Sending..." : "Send QR Codes"}
         </Button>
       </div>
      

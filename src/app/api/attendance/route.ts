@@ -17,8 +17,11 @@ export async function POST(request: NextRequest) {
     // Decrypt the participant ID from the QR code
     let participantId: string;
     try {
+      console.log('QR Data received:', qrData);
       participantId = decryptQRCodeData(qrData);
+      console.log('Decrypted participant ID:', participantId);
     } catch (error) {
+      console.error('QR decryption error:', error);
       return NextResponse.json(
         { success: false, error: 'Invalid QR code' },
         { status: 400 }

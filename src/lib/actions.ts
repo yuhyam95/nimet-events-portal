@@ -5,7 +5,7 @@ import { z } from "zod";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
 import bcrypt from "bcryptjs";
-import { sendRegistrationEmail } from "./email-service";
+import { sendRegistrationEmail, sendAttendanceQREmail } from "./email-service";
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -601,7 +601,12 @@ export async function authenticateUser(email: string, password: string): Promise
 
 // Attendance functions
 export async function markAttendance(participantId: string, eventId: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
+  console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId);
+  console.log('participantId isValid:', ObjectId.isValid(participantId));
+  console.log('eventId isValid:', ObjectId.isValid(eventId));
+  
   if (!ObjectId.isValid(participantId) || !ObjectId.isValid(eventId)) {
+    console.log('Invalid IDs - participantId:', participantId, 'eventId:', eventId);
     return { success: false, error: "Invalid participant or event ID" };
   }
 
@@ -725,5 +730,139 @@ export async function getAttendanceStats(eventId: string): Promise<{ totalPartic
   } catch (error) {
     console.error("Error fetching attendance stats:", error);
     return { totalParticipants: 0, checkedIn: 0, notCheckedIn: 0 };
+  }
+}
+
+export async function sendQRCodeToParticipant(participantId: string, eventId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = await getDb();
+
+    console.log("Looking for participant with ID:", participantId);
+    console.log("Looking for event with ID:", eventId);
+
+    // Get participant and event details
+    const participant = await db.collection("participants").findOne({ _id: new ObjectId(participantId) });
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+
+    console.log("Found participant:", participant ? "Yes" : "No");
+    console.log("Found event:", event ? "Yes" : "No");
+
+    if (!participant) {
+      console.log("Participant not found with ID:", participantId);
+      return { success: false, error: "Participant not found" };
+    }
+
+    if (!event) {
+      console.log("Event not found with ID:", eventId);
+      return { success: false, error: "Event not found" };
+    }
+
+    // Map participant data to match component format (with id field)
+    const mappedParticipant: Participant = {
+      id: participant._id.toString(),
+      name: participant.name,
+      organization: participant.organization,
+      designation: participant.designation || "",
+      contact: participant.contact,
+      phone: participant.phone || "",
+      eventId: participant.eventId.toString(),
+      qrEmailSent: participant.qrEmailSent
+    };
+
+    // Map event data to match Event type
+    const mappedEvent: Event = {
+      id: event._id.toString(),
+      name: event.name,
+      slug: event.slug || event._id.toString(),
+      startDate: event.startDate || event.date,
+      endDate: event.endDate || event.date,
+      location: event.location,
+      description: event.description
+    };
+
+    // Send QR code email
+    await sendAttendanceQREmail({
+      participant: mappedParticipant,
+      event: mappedEvent
+    });
+
+    // Mark participant as having received QR code email
+    await db.collection("participants").updateOne(
+      { _id: new ObjectId(participantId) },
+      { $set: { qrEmailSent: true } }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending QR code to participant:", error);
+    return { success: false, error: "Failed to send QR code email" };
+  }
+}
+
+export async function sendQRCodesToAllParticipants(eventId: string): Promise<{ success: boolean; sent: number; failed: number; errors: string[] }> {
+  try {
+    const db = await getDb();
+
+    // Get event details
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event) {
+      return { success: false, sent: 0, failed: 0, errors: ["Event not found"] };
+    }
+
+    // Get all participants for this event
+    const participants = await db.collection("participants").find({ eventId }).toArray();
+
+    let sent = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    // Send QR codes to all participants
+    for (const participant of participants) {
+      try {
+        // Map participant data to match component format (with id field)
+        const mappedParticipant: Participant = {
+          id: participant._id.toString(),
+          name: participant.name,
+          organization: participant.organization,
+          designation: participant.designation || "",
+          contact: participant.contact,
+          phone: participant.phone || "",
+          eventId: participant.eventId.toString(),
+          qrEmailSent: participant.qrEmailSent
+        };
+
+        // Map event data to match Event type
+        const mappedEvent: Event = {
+          id: event._id.toString(),
+          name: event.name,
+          slug: event.slug || event._id.toString(),
+          startDate: event.startDate || event.date,
+          endDate: event.endDate || event.date,
+          location: event.location,
+          description: event.description
+        };
+
+        await sendAttendanceQREmail({
+          participant: mappedParticipant,
+          event: mappedEvent
+        });
+        
+        // Mark participant as having received QR code email
+        await db.collection("participants").updateOne(
+          { _id: participant._id },
+          { $set: { qrEmailSent: true } }
+        );
+        
+        sent++;
+      } catch (error) {
+        failed++;
+        errors.push(`Failed to send to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return { success: true, sent, failed, errors };
+  } catch (error) {
+    console.error("Error sending QR codes to all participants:", error);
+    return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk QR code sending"] };
   }
 }

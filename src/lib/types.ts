@@ -13,12 +13,14 @@ export type NewEvent = Omit<Event, "id">;
 
 export interface Participant {
   id: string;
+  _id?: any; // MongoDB ObjectId
   name: string;
   organization: string;
   designation: string;
   contact: string;
   phone: string;
   eventId: string;
+  qrEmailSent?: boolean;
 }
 
 export interface Attendance {
