@@ -208,7 +208,7 @@ export async function deleteEvent(id: string) {
 export async function getParticipants(): Promise<(Participant & { eventName: string })[]> {
    try {
     const db = await getDb();
-    const participants = await db.collection("participants").find({}).sort({ _id: -1 }).toArray();
+    const participants = await db.collection("participants").find({}).sort({ _id: 1 }).toArray();
     
     // Get all events to map event names
     const events = await db.collection("events").find({}).toArray();
@@ -239,7 +239,7 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
     const db = await getDb();
     const participants = await db.collection("participants").find({ 
       eventId: new ObjectId(eventId) 
-    }).sort({ _id: -1 }).toArray();
+    }).sort({ _id: 1 }).toArray();
     
     // Get the specific event to get its details
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });

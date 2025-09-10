@@ -28,6 +28,9 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  ArrowUp,
+  ArrowDown,
+  Download,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -42,12 +45,14 @@ export function ParticipantList({
 }: {
   initialParticipants: (Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string })[];
 }) {
+  const eventName = initialParticipants.length > 0 ? initialParticipants[0].eventName : "Event Participants";
   const [participants, setParticipants] = React.useState(initialParticipants);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortConfig, setSortConfig] = React.useState<{
     key: SortKey;
     direction: "ascending" | "descending";
   } | null>(null);
+  const [sortOrder, setSortOrder] = React.useState<"ascending" | "descending">("ascending");
   
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedParticipant, setSelectedParticipant] = React.useState<Participant | null>(null);
@@ -62,6 +67,52 @@ export function ParticipantList({
       direction = "descending";
     }
     setSortConfig({ key, direction });
+  };
+
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === "ascending" ? "descending" : "ascending";
+    setSortOrder(newOrder);
+    // Reverse the current participants array to change the order
+    setParticipants([...participants].reverse());
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      "S/N",
+      "Name",
+      "Organization", 
+      "Designation",
+      "Contact",
+      "Phone"
+    ];
+
+    const csvContent = [
+      `"${eventName}"`,
+      headers.join(","),
+      ...sortedAndFilteredParticipants.map((participant, index) => [
+        index + 1,
+        `"${participant.name}"`,
+        `"${participant.organization}"`,
+        `"${participant.designation}"`,
+        `"${participant.contact}"`,
+        `"${participant.phone}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `participants-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Successful",
+      description: "Participants data has been exported to CSV file.",
+    });
   };
 
   const sortedAndFilteredParticipants = React.useMemo(() => {
@@ -181,10 +232,6 @@ export function ParticipantList({
               <span className="font-semibold text-foreground">Phone: </span>
               {participant.phone}
             </p>
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Event: </span>
-              {participant.eventName}
-            </p>
             <Button
               variant="outline"
               size="sm"
@@ -205,6 +252,7 @@ export function ParticipantList({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>S/N</TableHead>
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
               <SortableHeader sortKey="designation">Designation</SortableHeader>
@@ -215,8 +263,9 @@ export function ParticipantList({
           </TableHeader>
           <TableBody>
             {sortedAndFilteredParticipants.length > 0 ? (
-              sortedAndFilteredParticipants.map((participant) => (
+              sortedAndFilteredParticipants.map((participant, index) => (
                 <TableRow key={participant.id}>
+                  <TableCell className="font-medium">{index + 1}</TableCell>
                   <TableCell className="font-medium">{participant.name}</TableCell>
                   <TableCell>{participant.organization}</TableCell>
                   <TableCell>{participant.designation}</TableCell>
@@ -232,7 +281,7 @@ export function ParticipantList({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -244,7 +293,13 @@ export function ParticipantList({
 
   return (
     <>
-      <div className="flex items-center py-4">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold font-headline">{eventName}</h2>
+        <p className="text-muted-foreground mt-1">
+          {sortedAndFilteredParticipants.length} participant{sortedAndFilteredParticipants.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+      <div className="flex items-center py-4 gap-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -254,6 +309,33 @@ export function ParticipantList({
             className="pl-9"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleSortOrder}
+          className="flex items-center gap-2"
+        >
+          {sortOrder === "ascending" ? (
+            <>
+              <ArrowUp className="h-4 w-4" />
+              Sort by Newest First
+            </>
+          ) : (
+            <>
+              <ArrowDown className="h-4 w-4" />
+              Sort by Oldest First
+            </>
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={exportToCSV}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
      
       {isMobile ? renderMobileList() : renderDesktopTable()}
