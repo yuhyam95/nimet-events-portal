@@ -321,7 +321,7 @@ export function ParticipantList({
   );
 
   const renderMobileList = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       {sortedAndFilteredParticipants.map((participant) => (
         <Card key={participant.id}>
           <CardHeader>
@@ -344,7 +344,7 @@ export function ParticipantList({
               <span className="font-semibold text-foreground">Phone: </span>
               {participant.phone}
             </p>
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-col gap-2 mt-4">
               {/* <Button
                 variant="outline"
                 size="sm"
@@ -357,21 +357,21 @@ export function ParticipantList({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="w-full"
                 onClick={() => handleGenerateQRCode(participant)}
               >
                 <QrCode className="mr-2 h-4 w-4" />
-                QR Code
+                View QR Code
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="w-full"
                 onClick={() => handleSendQRCodeEmail(participant)}
-                disabled={isEmailLoading || participant.qrEmailSent}
+                disabled={isEmailLoading}
               >
                 <Mail className="mr-2 h-4 w-4" />
-                {isEmailLoading ? "..." : participant.qrEmailSent ? "Sent" : "Email"}
+                {isEmailLoading ? "..." : participant.qrEmailSent ? "Resend QR" : "Send QR"}
               </Button>
             </div>
           </CardContent>
@@ -381,8 +381,8 @@ export function ParticipantList({
   );
 
   const renderDesktopTable = () => (
-     <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border overflow-x-auto">
+        <Table className="min-w-full">
           <TableHeader>
             <TableRow>
               <TableHead>S/N</TableHead>
@@ -405,23 +405,24 @@ export function ParticipantList({
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       {/* <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
                         <Sparkles className="mr-2 h-4 w-4" />
                         Flyer
                       </Button> */}
-                      <Button variant="outline" size="sm" onClick={() => handleGenerateQRCode(participant)}>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateQRCode(participant)}>
                         <QrCode className="mr-2 h-4 w-4" />
                         QR Code
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
+                        className="w-full"
                         onClick={() => handleSendQRCodeEmail(participant)}
-                        disabled={isEmailLoading || participant.qrEmailSent}
+                        disabled={isEmailLoading}
                       >
                         <Mail className="mr-2 h-4 w-4" />
-                        {isEmailLoading ? "..." : participant.qrEmailSent ? "Sent" : "Email"}
+                        {isEmailLoading ? "..." : participant.qrEmailSent ? "Resend QR Code" : "Email QR Code"}
                       </Button>
                     </div>
                   </TableCell>
@@ -440,7 +441,7 @@ export function ParticipantList({
   )
 
   return (
-    <>
+    <div className="w-full min-w-0">
       <div className="mb-6">
         <h2 className="text-2xl font-bold font-headline">{eventName}</h2>
         <p className="text-muted-foreground mt-1">
@@ -601,6 +602,6 @@ export function ParticipantList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

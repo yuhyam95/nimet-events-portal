@@ -87,14 +87,14 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
               </div>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset>
+        <SidebarInset className="overflow-x-auto">
           <header className="flex items-center gap-4 md:hidden border-b">
               <div className="p-4 sm:p-6 lg:p-8">
                   <SidebarTrigger />
               </div>
               <h1 className="text-xl font-semibold text-black">Dashboard</h1>
           </header>
-          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+          <div className="p-4 sm:p-6 lg:p-8 min-w-0 w-full">{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </>

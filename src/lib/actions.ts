@@ -304,17 +304,18 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       return { success: false, error: "A participant with this phone number has already registered for this event." };
     }
     
-    await db.collection("participants").insertOne({
+    const result = await db.collection("participants").insertOne({
       ...participantData,
       eventId: new ObjectId(eventId)
     });
 
-    // Send confirmation email with QR code
+    // Send attendance QR code email
     try {
       // Get event details for the email
       const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
       if (event) {
-        const eventData: Event = {
+        // Map event data to match Event type
+        const mappedEvent: Event = {
           id: event._id.toString(),
           name: event.name,
           slug: event.slug || event._id.toString(),
@@ -324,21 +325,33 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
           description: event.description,
         };
 
-        // Construct event URL
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
-        const eventUrl = `${baseUrl}/${eventData.slug}`;
+        // Map participant data to match component format (with id field)
+        const mappedParticipant: Participant = {
+          id: result.insertedId.toString(),
+          name: participantData.name,
+          organization: participantData.organization,
+          designation: participantData.designation || "",
+          contact: participantData.contact,
+          phone: participantData.phone || "",
+          eventId: eventId,
+          qrEmailSent: false
+        };
 
-        // Send email
-        await sendRegistrationEmail({
-          participantName: participantData.name,
-          participantEmail: participantData.contact,
-          event: eventData,
-          eventUrl: eventUrl,
+        // Send attendance QR email
+        await sendAttendanceQREmail({
+          participant: mappedParticipant,
+          event: mappedEvent
         });
+
+        // Mark participant as having received QR code email
+        await db.collection("participants").updateOne(
+          { _id: result.insertedId },
+          { $set: { qrEmailSent: true } }
+        );
       }
     } catch (emailError) {
       // Log email error but don't fail the registration
-      console.error("Failed to send registration email:", emailError);
+      console.error("Failed to send attendance QR email:", emailError);
       // Note: We don't throw here to avoid failing the registration if email fails
     }
 
