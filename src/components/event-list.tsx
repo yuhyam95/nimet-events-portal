@@ -285,6 +285,11 @@ export function EventList() {
                               View Participants
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/events/${event.id}/attendance`}>
+                              View Attendance
+                            </Link>
+                          </DropdownMenuItem>
                            <DropdownMenuItem 
                              className="text-destructive"
                              onClick={() => setDeletingEvent(event)}

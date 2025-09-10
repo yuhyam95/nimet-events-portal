@@ -21,6 +21,15 @@ export interface Participant {
   eventId: string;
 }
 
+export interface Attendance {
+  id: string;
+  participantId: string;
+  eventId: string;
+  checkedInAt: string;
+  participantName?: string;
+  participantOrganization?: string;
+}
+
 export interface User {
   id: string;
   fullName: string;

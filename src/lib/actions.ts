@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { MongoClient, ObjectId } from "mongodb";
-import type { Event, Participant, User, CreateUserData } from "./types";
+import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
 import bcrypt from "bcryptjs";
 import { sendRegistrationEmail } from "./email-service";
 
@@ -596,5 +596,134 @@ export async function authenticateUser(email: string, password: string): Promise
   } catch (error) {
     console.error("Authentication error:", error);
     return null;
+  }
+}
+
+// Attendance functions
+export async function markAttendance(participantId: string, eventId: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
+  if (!ObjectId.isValid(participantId) || !ObjectId.isValid(eventId)) {
+    return { success: false, error: "Invalid participant or event ID" };
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check if participant exists and belongs to the event
+    const participant = await db.collection("participants").findOne({ 
+      _id: new ObjectId(participantId),
+      eventId: new ObjectId(eventId)
+    });
+    
+    if (!participant) {
+      return { success: false, error: "Participant not found for this event" };
+    }
+    
+    // Check if already checked in
+    const existingAttendance = await db.collection("attendance").findOne({
+      participantId: new ObjectId(participantId),
+      eventId: new ObjectId(eventId)
+    });
+    
+    if (existingAttendance) {
+      return { 
+        success: false, 
+        error: "Participant has already been marked as present",
+        attendance: {
+          id: existingAttendance._id.toString(),
+          participantId: existingAttendance.participantId.toString(),
+          eventId: existingAttendance.eventId.toString(),
+          checkedInAt: existingAttendance.checkedInAt,
+          participantName: participant.name,
+          participantOrganization: participant.organization
+        }
+      };
+    }
+    
+    // Mark attendance
+    const now = new Date().toISOString();
+    const attendanceData = {
+      participantId: new ObjectId(participantId),
+      eventId: new ObjectId(eventId),
+      checkedInAt: now
+    };
+    
+    const result = await db.collection("attendance").insertOne(attendanceData);
+    
+    return {
+      success: true,
+      attendance: {
+        id: result.insertedId.toString(),
+        participantId: participantId,
+        eventId: eventId,
+        checkedInAt: now,
+        participantName: participant.name,
+        participantOrganization: participant.organization
+      }
+    };
+  } catch (error) {
+    console.error("Failed to mark attendance:", error);
+    return { success: false, error: "Database operation failed. Could not mark attendance." };
+  }
+}
+
+export async function getAttendanceByEventId(eventId: string): Promise<Attendance[]> {
+  if (!ObjectId.isValid(eventId)) {
+    return [];
+  }
+
+  try {
+    const db = await getDb();
+    const attendance = await db.collection("attendance").find({ 
+      eventId: new ObjectId(eventId) 
+    }).sort({ checkedInAt: -1 }).toArray();
+    
+    // Get participant details for each attendance record
+    const participantIds = attendance.map(a => a.participantId);
+    const participants = await db.collection("participants").find({
+      _id: { $in: participantIds }
+    }).toArray();
+    
+    const participantMap = new Map(participants.map(p => [p._id.toString(), p]));
+    
+    return attendance.map((a) => ({
+      id: a._id.toString(),
+      participantId: a.participantId.toString(),
+      eventId: a.eventId.toString(),
+      checkedInAt: a.checkedInAt,
+      participantName: participantMap.get(a.participantId.toString())?.name || "Unknown",
+      participantOrganization: participantMap.get(a.participantId.toString())?.organization || "Unknown"
+    }));
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return [];
+  }
+}
+
+export async function getAttendanceStats(eventId: string): Promise<{ totalParticipants: number; checkedIn: number; notCheckedIn: number }> {
+  if (!ObjectId.isValid(eventId)) {
+    return { totalParticipants: 0, checkedIn: 0, notCheckedIn: 0 };
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Get total participants for the event
+    const totalParticipants = await db.collection("participants").countDocuments({
+      eventId: new ObjectId(eventId)
+    });
+    
+    // Get checked in count
+    const checkedIn = await db.collection("attendance").countDocuments({
+      eventId: new ObjectId(eventId)
+    });
+    
+    return {
+      totalParticipants,
+      checkedIn,
+      notCheckedIn: totalParticipants - checkedIn
+    };
+  } catch (error) {
+    console.error("Error fetching attendance stats:", error);
+    return { totalParticipants: 0, checkedIn: 0, notCheckedIn: 0 };
   }
 }

@@ -31,11 +31,13 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  QrCode,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
+import { generateQRCode, downloadQRCode } from "@/lib/qr-generator";
 import { format, parseISO } from "date-fns";
 
 type SortKey = keyof Participant;
@@ -58,6 +60,11 @@ export function ParticipantList({
   const [selectedParticipant, setSelectedParticipant] = React.useState<Participant | null>(null);
   const [generatedFlyer, setGeneratedFlyer] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  
+  const [isQRDialogOpen, setIsQRDialogOpen] = React.useState(false);
+  const [selectedQRParticipant, setSelectedQRParticipant] = React.useState<Participant | null>(null);
+  const [generatedQRCode, setGeneratedQRCode] = React.useState<string | null>(null);
+  const [isQRLoading, setIsQRLoading] = React.useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -113,6 +120,28 @@ export function ParticipantList({
       title: "Export Successful",
       description: "Participants data has been exported to CSV file.",
     });
+  };
+
+  const handleGenerateQRCode = async (participant: Participant) => {
+    setSelectedQRParticipant(participant);
+    setIsQRDialogOpen(true);
+    setIsQRLoading(true);
+    setGeneratedQRCode(null);
+    
+    try {
+      const qrCodeDataURL = await generateQRCode(participant.id);
+      setGeneratedQRCode(qrCodeDataURL);
+    } catch (error) {
+      console.error("Failed to generate QR code:", error);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Could not generate the QR code. Please try again."
+      });
+      setIsQRDialogOpen(false);
+    } finally {
+      setIsQRLoading(false);
+    }
   };
 
   const sortedAndFilteredParticipants = React.useMemo(() => {
@@ -232,15 +261,26 @@ export function ParticipantList({
               <span className="font-semibold text-foreground">Phone: </span>
               {participant.phone}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4 w-full"
-              onClick={() => handleGenerateTag(participant)}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Flyer
-            </Button>
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleGenerateTag(participant)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Flyer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleGenerateQRCode(participant)}
+              >
+                <QrCode className="mr-2 h-4 w-4" />
+                QR Code
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}
@@ -272,10 +312,16 @@ export function ParticipantList({
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Flyer
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleGenerateTag(participant)}>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Flyer
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleGenerateQRCode(participant)}>
+                        <QrCode className="mr-2 h-4 w-4" />
+                        QR Code
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -386,6 +432,60 @@ export function ParticipantList({
                 Download PNG
             </Button>
             <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+                <QrCode className="text-accent" />
+                QR Code for {selectedQRParticipant?.name}
+            </DialogTitle>
+            <DialogDescription>
+                Scan this QR code to mark attendance for this participant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            {isQRLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-64 w-64 mx-auto" />
+                </div>
+            ) : generatedQRCode && (
+                <>
+                    <div>
+                        <h3 className="font-semibold mb-2">QR Code</h3>
+                        <div className="border rounded-lg p-4 bg-background text-center shadow-md">
+                            <img 
+                                src={generatedQRCode} 
+                                alt="QR Code" 
+                                className="w-64 h-64 mx-auto"
+                            />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 text-center">
+                          Participant: {selectedQRParticipant?.name}<br/>
+                          Organization: {selectedQRParticipant?.organization}
+                        </p>
+                    </div>
+                </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+                variant="outline" 
+                onClick={() => {
+                    if (generatedQRCode && selectedQRParticipant) {
+                        downloadQRCode(generatedQRCode, `${selectedQRParticipant.name}-qr-code.png`);
+                    }
+                }}
+                disabled={!generatedQRCode}
+            >
+                <Download className="mr-2 h-4 w-4" />
+                Download PNG
+            </Button>
+            <Button onClick={() => setIsQRDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
