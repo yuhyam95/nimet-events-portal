@@ -12,7 +12,7 @@ const ParticipantSchema = z.object({
   organization: z.string().min(2, { message: "Organization must be at least 2 characters." }),
   designation: z.string().min(2, { message: "Designation must be at least 2 characters." }),
   contact: z.string().email({ message: "Please enter a valid email address." }),
-  phone: z.string().min(10, { message: "Please enter a valid phone number." }),
+  phone: z.string().min(11, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
 });
 
@@ -269,16 +269,16 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
    }
 }
 
-export async function addParticipant(data: unknown) {
+export async function addParticipant(data: unknown): Promise<{ success: boolean; error?: string }> {
   const validation = ParticipantSchema.safeParse(data);
   if (!validation.success) {
-    throw new Error("Invalid participant data");
+    return { success: false, error: "Invalid participant data" };
   }
 
   const { eventId, ...participantData } = validation.data;
   
   if (!ObjectId.isValid(eventId)) {
-    throw new Error("Invalid event ID");
+    return { success: false, error: "Invalid event ID" };
   }
 
   try {
@@ -291,7 +291,7 @@ export async function addParticipant(data: unknown) {
     });
     
     if (existingEmail) {
-      throw new Error("A participant with this email address has already registered for this event.");
+      return { success: false, error: "A participant with this email address has already registered for this event." };
     }
     
     // Check if phone number already exists for this event
@@ -301,7 +301,7 @@ export async function addParticipant(data: unknown) {
     });
     
     if (existingPhone) {
-      throw new Error("A participant with this phone number has already registered for this event.");
+      return { success: false, error: "A participant with this phone number has already registered for this event." };
     }
     
     await db.collection("participants").insertOne({
@@ -341,19 +341,13 @@ export async function addParticipant(data: unknown) {
       console.error("Failed to send registration email:", emailError);
       // Note: We don't throw here to avoid failing the registration if email fails
     }
+
+    return { success: true };
   } catch (error) {
     console.error("Failed to add participant:", error);
     
-    // Preserve specific business logic error messages
-    if (error instanceof Error) {
-      if (error.message.includes("already registered")) {
-        // Keep the specific duplicate registration messages
-        throw error;
-      }
-      throw new Error(error.message);
-    } else {
-      throw new Error("Database operation failed. Could not add participant.");
-    }
+    // Return generic error for unexpected issues
+    return { success: false, error: "Database operation failed. Could not add participant." };
   }
 }
 

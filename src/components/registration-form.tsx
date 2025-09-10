@@ -52,8 +52,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      await addParticipant({ ...values, eventId });
+    const result = await addParticipant({ ...values, eventId });
+    
+    if (result.success) {
       toast({
         title: "Registration Successful!",
         description: "We've received your registration. Check your email for confirmation with event details and QR code!",
@@ -61,8 +62,8 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
       // In a real app, you would redirect or clear the form.
       // For this demo, we'll redirect back home after a short delay.
       setTimeout(() => router.push('/'), 3000);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Could not complete your registration. Please try again.";
+    } else {
+      const errorMessage = result.error || "Could not complete your registration. Please try again.";
       
       // Check for specific duplicate errors and provide user-friendly messages
       if (errorMessage.includes("email address has already registered")) {
