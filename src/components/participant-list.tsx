@@ -448,8 +448,9 @@ export function ParticipantList({
           {sortedAndFilteredParticipants.length} participant{sortedAndFilteredParticipants.length !== 1 ? 's' : ''}
         </p>
       </div>
-      <div className="flex items-center py-4 gap-4">
-        <div className="relative w-full max-w-sm">
+      {/* Search bar - full width on mobile, inline on desktop */}
+      <div className="py-4 md:hidden">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search participants..."
@@ -458,11 +459,15 @@ export function ParticipantList({
             className="pl-9"
           />
         </div>
+      </div>
+      
+      {/* Action buttons - horizontal row on both mobile and desktop */}
+      <div className="flex items-center gap-2 py-4 overflow-x-auto">
         <Button
           variant="outline"
           size="sm"
           onClick={toggleSortOrder}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 flex-shrink-0"
         >
           {sortOrder === "ascending" ? (
             <>
@@ -480,7 +485,7 @@ export function ParticipantList({
           variant="outline"
           size="sm"
           onClick={exportToCSV}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 flex-shrink-0"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -490,11 +495,26 @@ export function ParticipantList({
           size="sm"
           onClick={handleSendQRCodesToAll}
           disabled={isBulkEmailLoading}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 flex-shrink-0"
         >
           <Send className="h-4 w-4" />
           {isBulkEmailLoading ? "Sending..." : "Send QR Codes"}
         </Button>
+      </div>
+      
+      {/* Desktop search bar - hidden on mobile */}
+      <div className="hidden md:block py-4">
+        <div className="flex items-center gap-4">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search participants..."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
       </div>
      
       {isMobile ? renderMobileList() : renderDesktopTable()}

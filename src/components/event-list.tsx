@@ -215,14 +215,14 @@ export function EventList() {
               {event.description}
             </p>
             <div className="pt-2 space-y-2">
-                <Button 
+                {/* <Button 
                   variant="outline" 
                   size="sm" 
                   className="w-full"
                   onClick={() => setEditingEvent(event)}
                 >
                   Edit Event
-                </Button>
+                </Button> */}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -234,13 +234,23 @@ export function EventList() {
                   </Link>
                 </Button>
                 <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  asChild
+                >
+                  <Link href={`/admin/events/${event.id}/attendance`}>
+                    View Attendance
+                  </Link>
+                </Button>
+                {/* <Button 
                   variant="destructive" 
                   size="sm" 
                   className="w-full"
                   onClick={() => setDeletingEvent(event)}
                 >
                   Delete Event
-                </Button>
+                </Button> */}
             </div>
           </CardContent>
         </Card>
