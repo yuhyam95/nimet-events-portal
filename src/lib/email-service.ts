@@ -306,7 +306,7 @@ export async function sendAttendanceQREmail(data: AttendanceQREmailData): Promis
     // Send email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: data.participant.contact,
+      to: data.participant.contact.toLowerCase().trim(),
       subject: `Your Attendance QR Code - ${data.event.name}`,
       html: emailHtml,
       attachments: [

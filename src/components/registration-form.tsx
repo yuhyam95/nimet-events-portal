@@ -52,7 +52,12 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await addParticipant({ ...values, eventId });
+    // Normalize email to lowercase
+    const normalizedValues = {
+      ...values,
+      contact: values.contact.toLowerCase().trim()
+    };
+    const result = await addParticipant({ ...normalizedValues, eventId });
     
     if (result.success) {
       toast({

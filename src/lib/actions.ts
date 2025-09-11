@@ -277,6 +277,9 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
 
   const { eventId, ...participantData } = validation.data;
   
+  // Normalize email to lowercase
+  participantData.contact = participantData.contact.toLowerCase().trim();
+  
   if (!ObjectId.isValid(eventId)) {
     return { success: false, error: "Invalid event ID" };
   }
@@ -812,70 +815,87 @@ export async function sendQRCodeToParticipant(participantId: string, eventId: st
   }
 }
 
-export async function sendQRCodesToAllParticipants(eventId: string): Promise<{ success: boolean; sent: number; failed: number; errors: string[] }> {
+export async function sendQRCodesToAllParticipants(eventId: string, batchSize: number = 25): Promise<{ success: boolean; sent: number; failed: number; errors: string[]; totalParticipants: number; batchesProcessed: number }> {
   try {
     const db = await getDb();
 
     // Get event details
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     if (!event) {
-      return { success: false, sent: 0, failed: 0, errors: ["Event not found"] };
+      return { success: false, sent: 0, failed: 0, errors: ["Event not found"], totalParticipants: 0, batchesProcessed: 0 };
     }
 
     // Get all participants for this event
     const participants = await db.collection("participants").find({ eventId }).toArray();
+    const totalParticipants = participants.length;
 
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
+    let batchesProcessed = 0;
 
-    // Send QR codes to all participants
-    for (const participant of participants) {
-      try {
-        // Map participant data to match component format (with id field)
-        const mappedParticipant: Participant = {
-          id: participant._id.toString(),
-          name: participant.name,
-          organization: participant.organization,
-          designation: participant.designation || "",
-          contact: participant.contact,
-          phone: participant.phone || "",
-          eventId: participant.eventId.toString(),
-          qrEmailSent: participant.qrEmailSent
-        };
+    // Process participants in batches
+    for (let i = 0; i < participants.length; i += batchSize) {
+      const batch = participants.slice(i, i + batchSize);
+      console.log(`Processing batch ${batchesProcessed + 1}: participants ${i + 1}-${Math.min(i + batchSize, participants.length)} of ${totalParticipants}`);
+      
+      for (const participant of batch) {
+        try {
+          // Map participant data to match component format (with id field)
+          const mappedParticipant: Participant = {
+            id: participant._id.toString(),
+            name: participant.name,
+            organization: participant.organization,
+            designation: participant.designation || "",
+            contact: participant.contact.toLowerCase().trim(),
+            phone: participant.phone || "",
+            eventId: participant.eventId.toString(),
+            qrEmailSent: participant.qrEmailSent
+          };
 
-        // Map event data to match Event type
-        const mappedEvent: Event = {
-          id: event._id.toString(),
-          name: event.name,
-          slug: event.slug || event._id.toString(),
-          startDate: event.startDate || event.date,
-          endDate: event.endDate || event.date,
-          location: event.location,
-          description: event.description
-        };
+          // Map event data to match Event type
+          const mappedEvent: Event = {
+            id: event._id.toString(),
+            name: event.name,
+            slug: event.slug || event._id.toString(),
+            startDate: event.startDate || event.date,
+            endDate: event.endDate || event.date,
+            location: event.location,
+            description: event.description
+          };
 
-        await sendAttendanceQREmail({
-          participant: mappedParticipant,
-          event: mappedEvent
-        });
-        
-        // Mark participant as having received QR code email
-        await db.collection("participants").updateOne(
-          { _id: participant._id },
-          { $set: { qrEmailSent: true } }
-        );
-        
-        sent++;
-      } catch (error) {
-        failed++;
-        errors.push(`Failed to send to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          await sendAttendanceQREmail({
+            participant: mappedParticipant,
+            event: mappedEvent
+          });
+          
+          // Mark participant as having received QR code email
+          await db.collection("participants").updateOne(
+            { _id: participant._id },
+            { $set: { qrEmailSent: true } }
+          );
+          
+          sent++;
+          
+        } catch (error) {
+          failed++;
+          errors.push(`Failed to send to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+      
+      batchesProcessed++;
+      
+      // Add delay between batches (2 seconds) to respect rate limits
+      if (i + batchSize < participants.length) {
+        console.log(`Batch ${batchesProcessed} completed. Waiting 2 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
-    return { success: true, sent, failed, errors };
+    console.log(`Bulk email sending completed: ${sent} sent, ${failed} failed`);
+    return { success: true, sent, failed, errors, totalParticipants, batchesProcessed };
   } catch (error) {
     console.error("Error sending QR codes to all participants:", error);
-    return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk QR code sending"] };
+    return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk QR code sending"], totalParticipants: 0, batchesProcessed: 0 };
   }
 }

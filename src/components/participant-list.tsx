@@ -201,7 +201,7 @@ export function ParticipantList({
         
         toast({
           title: "Bulk Email Sent",
-          description: `QR codes sent to ${result.sent} participants. ${result.failed > 0 ? `${result.failed} failed.` : ''}`,
+          description: `QR codes sent to ${result.sent} of ${result.totalParticipants} participants. ${result.failed > 0 ? `${result.failed} failed.` : ''} Processed in ${result.batchesProcessed} batches.`,
         });
         
         if (result.errors.length > 0) {
