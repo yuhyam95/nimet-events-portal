@@ -5,7 +5,7 @@ import { z } from "zod";
 import { MongoClient, ObjectId } from "mongodb";
 import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
 import bcrypt from "bcryptjs";
-import { sendRegistrationEmail, sendAttendanceQREmail } from "./email-service";
+import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from "./email-service";
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -897,5 +897,150 @@ export async function sendQRCodesToAllParticipants(eventId: string, batchSize: n
   } catch (error) {
     console.error("Error sending QR codes to all participants:", error);
     return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk QR code sending"], totalParticipants: 0, batchesProcessed: 0 };
+  }
+}
+
+export async function sendFollowUpToParticipant(participantId: string, eventId: string, message?: string, surveyLink?: string, qrCodeImage?: File): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = await getDb();
+
+    console.log("Looking for participant with ID:", participantId);
+    console.log("Looking for event with ID:", eventId);
+
+    // Get participant and event details
+    const participant = await db.collection("participants").findOne({ _id: new ObjectId(participantId) });
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+
+    console.log("Found participant:", participant ? "Yes" : "No");
+    console.log("Found event:", event ? "Yes" : "No");
+
+    if (!participant) {
+      console.log("Participant not found with ID:", participantId);
+      return { success: false, error: "Participant not found" };
+    }
+
+    if (!event) {
+      console.log("Event not found with ID:", eventId);
+      return { success: false, error: "Event not found" };
+    }
+
+    // Map participant data to match component format (with id field)
+    const mappedParticipant: Participant = {
+      id: participant._id.toString(),
+      name: participant.name,
+      organization: participant.organization,
+      designation: participant.designation || "",
+      contact: participant.contact,
+      phone: participant.phone || "",
+      eventId: participant.eventId.toString(),
+      qrEmailSent: participant.qrEmailSent
+    };
+
+    // Map event data to match Event type
+    const mappedEvent: Event = {
+      id: event._id.toString(),
+      name: event.name,
+      slug: event.slug || event._id.toString(),
+      startDate: event.startDate || event.date,
+      endDate: event.endDate || event.date,
+      location: event.location,
+      description: event.description
+    };
+
+    // Send follow-up email
+    await sendFollowUpEmail({
+      participant: mappedParticipant,
+      event: mappedEvent,
+      message: message,
+      surveyLink: surveyLink,
+      qrCodeImage: qrCodeImage
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending follow-up to participant:", error);
+    return { success: false, error: "Failed to send follow-up email" };
+  }
+}
+
+export async function sendFollowUpToAllParticipants(eventId: string, message?: string, surveyLink?: string, qrCodeImage?: File, batchSize: number = 25): Promise<{ success: boolean; sent: number; failed: number; errors: string[]; totalParticipants: number; batchesProcessed: number }> {
+  try {
+    const db = await getDb();
+
+    // Get event details
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event) {
+      return { success: false, sent: 0, failed: 0, errors: ["Event not found"], totalParticipants: 0, batchesProcessed: 0 };
+    }
+
+    // Get all participants for this event
+    const participants = await db.collection("participants").find({ eventId }).toArray();
+    const totalParticipants = participants.length;
+
+    let sent = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    let batchesProcessed = 0;
+
+    // Process participants in batches
+    for (let i = 0; i < participants.length; i += batchSize) {
+      const batch = participants.slice(i, i + batchSize);
+      console.log(`Processing follow-up batch ${batchesProcessed + 1}: participants ${i + 1}-${Math.min(i + batchSize, participants.length)} of ${totalParticipants}`);
+      
+      for (const participant of batch) {
+        try {
+          // Map participant data to match component format (with id field)
+          const mappedParticipant: Participant = {
+            id: participant._id.toString(),
+            name: participant.name,
+            organization: participant.organization,
+            designation: participant.designation || "",
+            contact: participant.contact.toLowerCase().trim(),
+            phone: participant.phone || "",
+            eventId: participant.eventId.toString(),
+            qrEmailSent: participant.qrEmailSent
+          };
+
+          // Map event data to match Event type
+          const mappedEvent: Event = {
+            id: event._id.toString(),
+            name: event.name,
+            slug: event.slug || event._id.toString(),
+            startDate: event.startDate || event.date,
+            endDate: event.endDate || event.date,
+            location: event.location,
+            description: event.description
+          };
+
+          await sendFollowUpEmail({
+            participant: mappedParticipant,
+            event: mappedEvent,
+            message: message,
+            surveyLink: surveyLink,
+            qrCodeImage: qrCodeImage
+          });
+          
+          sent++;
+          
+        } catch (error) {
+          failed++;
+          errors.push(`Failed to send follow-up to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+      
+      batchesProcessed++;
+      
+      // Add delay between batches (2 seconds) to respect rate limits
+      if (i + batchSize < participants.length) {
+        console.log(`Follow-up batch ${batchesProcessed} completed. Waiting 2 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    console.log(`Bulk follow-up email sending completed: ${sent} sent, ${failed} failed`);
+    return { success: true, sent, failed, errors, totalParticipants, batchesProcessed };
+  } catch (error) {
+    console.error("Error sending follow-up to all participants:", error);
+    return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk follow-up sending"], totalParticipants: 0, batchesProcessed: 0 };
   }
 }

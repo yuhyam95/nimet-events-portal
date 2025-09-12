@@ -21,6 +21,7 @@ import {
     DialogFooter
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowUpDown,
   Search,
@@ -36,7 +37,7 @@ import {
   Send,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
-import { sendQRCodeToParticipant, sendQRCodesToAllParticipants } from "@/lib/actions";
+import { sendQRCodeToParticipant, sendQRCodesToAllParticipants, sendFollowUpToParticipant, sendFollowUpToAllParticipants } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
@@ -70,6 +71,29 @@ export function ParticipantList({
   const [isQRLoading, setIsQRLoading] = React.useState(false);
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [isBulkEmailLoading, setIsBulkEmailLoading] = React.useState(false);
+  const [isFollowUpLoading, setIsFollowUpLoading] = React.useState(false);
+  const [isBulkFollowUpLoading, setIsBulkFollowUpLoading] = React.useState(false);
+  const [followUpMessage, setFollowUpMessage] = React.useState("");
+  const [surveyLink, setSurveyLink] = React.useState("");
+  const [qrCodeImage, setQrCodeImage] = React.useState<File | null>(null);
+  const [showFollowUpDialog, setShowFollowUpDialog] = React.useState(false);
+  const [selectedParticipants, setSelectedParticipants] = React.useState<Set<string>>(new Set());
+  const [showProgressDialog, setShowProgressDialog] = React.useState(false);
+  const [emailProgress, setEmailProgress] = React.useState({
+    total: 0,
+    sent: 0,
+    failed: 0,
+    current: "",
+    errors: [] as string[]
+  });
+  const [showQRProgressDialog, setShowQRProgressDialog] = React.useState(false);
+  const [qrProgress, setQrProgress] = React.useState({
+    total: 0,
+    sent: 0,
+    failed: 0,
+    current: "",
+    errors: [] as string[]
+  });
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -181,47 +205,294 @@ export function ParticipantList({
     }
   };
 
-  const handleSendQRCodesToAll = async () => {
-    if (participants.length === 0) {
+  const handleSendQRCodesToSelected = async () => {
+    if (selectedParticipants.size === 0) {
       toast({
-        title: "No Participants",
-        description: "There are no participants to send QR codes to.",
+        title: "No Participants Selected",
+        description: "Please select at least one participant to send QR codes to.",
         variant: "destructive",
       });
       return;
     }
 
+    const selectedParticipantsList = participants.filter(p => selectedParticipants.has(p.id));
+    
+    // Initialize progress
+    setQrProgress({
+      total: selectedParticipantsList.length,
+      sent: 0,
+      failed: 0,
+      current: "",
+      errors: []
+    });
+    
+    // Show progress dialog
+    setShowQRProgressDialog(true);
     setIsBulkEmailLoading(true);
+
     try {
-      const result = await sendQRCodesToAllParticipants(participants[0].eventId);
-      if (result.success) {
-        // Update all participants' qrEmailSent status locally
-        // Note: This is a simplified approach - in a real app you might want to refresh from server
-        setParticipants(prev => prev.map(p => ({ ...p, qrEmailSent: true })));
+      let sent = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < selectedParticipantsList.length; i++) {
+        const participant = selectedParticipantsList[i];
         
-        toast({
-          title: "Bulk Email Sent",
-          description: `QR codes sent to ${result.sent} of ${result.totalParticipants} participants. ${result.failed > 0 ? `${result.failed} failed.` : ''} Processed in ${result.batchesProcessed} batches.`,
-        });
-        
-        if (result.errors.length > 0) {
-          console.error("Email errors:", result.errors);
+        // Update current participant being processed
+        setQrProgress(prev => ({
+          ...prev,
+          current: `Sending QR code to ${participant.name} (${participant.contact})...`
+        }));
+
+        try {
+          const result = await sendQRCodeToParticipant(participant.id, participant.eventId);
+          if (result.success) {
+            sent++;
+            setQrProgress(prev => ({
+              ...prev,
+              sent: sent,
+              current: `✓ QR code sent to ${participant.name}`
+            }));
+            
+            // Update participant's qrEmailSent status locally
+            setParticipants(prev => prev.map(p => 
+              p.id === participant.id ? { ...p, qrEmailSent: true } : p
+            ));
+          } else {
+            failed++;
+            const errorMsg = `Failed to send QR code to ${participant.contact}: ${result.error || 'Unknown error'}`;
+            errors.push(errorMsg);
+            setQrProgress(prev => ({
+              ...prev,
+              failed: failed,
+              errors: [...prev.errors, errorMsg],
+              current: `✗ Failed to send QR code to ${participant.name}`
+            }));
+          }
+        } catch (error) {
+          failed++;
+          const errorMsg = `Failed to send QR code to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          errors.push(errorMsg);
+          setQrProgress(prev => ({
+            ...prev,
+            failed: failed,
+            errors: [...prev.errors, errorMsg],
+            current: `✗ Failed to send QR code to ${participant.name}`
+          }));
         }
+
+        // Add a small delay between emails to show progress
+        if (i < selectedParticipantsList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Final update
+      setQrProgress(prev => ({
+        ...prev,
+        current: `Completed! ${sent} sent, ${failed} failed`
+      }));
+
+      // Show completion toast
+      setTimeout(() => {
+        toast({
+          title: "QR Code Emails Sent",
+          description: `QR codes sent to ${sent} of ${selectedParticipants.size} selected participants. ${failed > 0 ? `${failed} failed.` : ''}`,
+        });
+      }, 1000);
+
+      // Clear selections after a delay
+      setTimeout(() => {
+        setSelectedParticipants(new Set());
+        setShowQRProgressDialog(false);
+      }, 3000);
+
+    } catch (error) {
+      setQrProgress(prev => ({
+        ...prev,
+        current: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }));
+      
+      setTimeout(() => {
+        toast({
+          title: "Error",
+          description: "Failed to send QR codes. Please try again.",
+          variant: "destructive",
+        });
+        setShowQRProgressDialog(false);
+      }, 2000);
+    } finally {
+      setIsBulkEmailLoading(false);
+    }
+  };
+
+  const handleSendFollowUpEmail = async (participant: Participant) => {
+    setIsFollowUpLoading(true);
+    try {
+      const result = await sendFollowUpToParticipant(participant.id, participant.eventId, followUpMessage, surveyLink);
+      if (result.success) {
+        toast({
+          title: "Thank You Email Sent",
+          description: `Thank you email sent to ${participant.contact}`,
+        });
+        setFollowUpMessage("");
+        setSurveyLink("");
+        setShowFollowUpDialog(false);
       } else {
         toast({
           title: "Error",
-          description: "Failed to send QR codes to participants",
+          description: result.error || "Failed to send thank you email",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send QR codes. Please try again.",
+        description: "Failed to send thank you email. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsBulkEmailLoading(false);
+      setIsFollowUpLoading(false);
+    }
+  };
+
+  const handleSelectParticipant = (participantId: string) => {
+    setSelectedParticipants(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(participantId)) {
+        newSet.delete(participantId);
+      } else {
+        newSet.add(participantId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedParticipants.size === sortedAndFilteredParticipants.length) {
+      setSelectedParticipants(new Set());
+    } else {
+      setSelectedParticipants(new Set(sortedAndFilteredParticipants.map(p => p.id)));
+    }
+  };
+
+  const handleSendFollowUpToSelected = async () => {
+    if (selectedParticipants.size === 0) {
+      toast({
+        title: "No Participants Selected",
+        description: "Please select at least one participant to send thank you emails to.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedParticipantsList = participants.filter(p => selectedParticipants.has(p.id));
+    
+    // Initialize progress
+    setEmailProgress({
+      total: selectedParticipantsList.length,
+      sent: 0,
+      failed: 0,
+      current: "",
+      errors: []
+    });
+    
+    // Close the follow-up dialog and show progress dialog
+    setShowFollowUpDialog(false);
+    setShowProgressDialog(true);
+    setIsBulkFollowUpLoading(true);
+
+    try {
+      let sent = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < selectedParticipantsList.length; i++) {
+        const participant = selectedParticipantsList[i];
+        
+        // Update current participant being processed
+        setEmailProgress(prev => ({
+          ...prev,
+          current: `Sending to ${participant.name} (${participant.contact})...`
+        }));
+
+        try {
+          const result = await sendFollowUpToParticipant(participant.id, participant.eventId, followUpMessage, surveyLink, qrCodeImage || undefined);
+          if (result.success) {
+            sent++;
+            setEmailProgress(prev => ({
+              ...prev,
+              sent: sent,
+              current: `✓ Sent to ${participant.name}`
+            }));
+          } else {
+            failed++;
+            const errorMsg = `Failed to send to ${participant.contact}: ${result.error || 'Unknown error'}`;
+            errors.push(errorMsg);
+            setEmailProgress(prev => ({
+              ...prev,
+              failed: failed,
+              errors: [...prev.errors, errorMsg],
+              current: `✗ Failed to send to ${participant.name}`
+            }));
+          }
+        } catch (error) {
+          failed++;
+          const errorMsg = `Failed to send to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          errors.push(errorMsg);
+          setEmailProgress(prev => ({
+            ...prev,
+            failed: failed,
+            errors: [...prev.errors, errorMsg],
+            current: `✗ Failed to send to ${participant.name}`
+          }));
+        }
+
+        // Add a small delay between emails to show progress
+        if (i < selectedParticipantsList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Final update
+      setEmailProgress(prev => ({
+        ...prev,
+        current: `Completed! ${sent} sent, ${failed} failed`
+      }));
+
+      // Show completion toast
+      setTimeout(() => {
+        toast({
+          title: "Thank You Emails Sent",
+          description: `Thank you emails sent to ${sent} of ${selectedParticipants.size} selected participants. ${failed > 0 ? `${failed} failed.` : ''}`,
+        });
+      }, 1000);
+
+      // Clear form and selections after a delay
+      setTimeout(() => {
+        setFollowUpMessage("");
+        setSurveyLink("");
+        setQrCodeImage(null);
+        setSelectedParticipants(new Set());
+        setShowProgressDialog(false);
+      }, 3000);
+
+    } catch (error) {
+      setEmailProgress(prev => ({
+        ...prev,
+        current: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }));
+      
+      setTimeout(() => {
+        toast({
+          title: "Error",
+          description: "Failed to send thank you emails. Please try again.",
+          variant: "destructive",
+        });
+        setShowProgressDialog(false);
+      }, 2000);
+    } finally {
+      setIsBulkFollowUpLoading(false);
     }
   };
 
@@ -323,9 +594,17 @@ export function ParticipantList({
   const renderMobileList = () => (
     <div className="space-y-4 w-full min-w-0">
       {sortedAndFilteredParticipants.map((participant) => (
-        <Card key={participant.id}>
+        <Card key={participant.id} className={selectedParticipants.has(participant.id) ? "ring-2 ring-blue-500" : ""}>
           <CardHeader>
-            <CardTitle>{participant.name}</CardTitle>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selectedParticipants.has(participant.id)}
+                onChange={() => handleSelectParticipant(participant.id)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <CardTitle>{participant.name}</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm">
@@ -385,6 +664,14 @@ export function ParticipantList({
         <Table className="min-w-full">
           <TableHeader>
             <TableRow>
+              <TableHead>
+                <input
+                  type="checkbox"
+                  checked={selectedParticipants.size === sortedAndFilteredParticipants.length && sortedAndFilteredParticipants.length > 0}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+              </TableHead>
               <TableHead>S/N</TableHead>
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
@@ -397,7 +684,15 @@ export function ParticipantList({
           <TableBody>
             {sortedAndFilteredParticipants.length > 0 ? (
               sortedAndFilteredParticipants.map((participant, index) => (
-                <TableRow key={participant.id}>
+                <TableRow key={participant.id} className={selectedParticipants.has(participant.id) ? "bg-blue-50" : ""}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedParticipants.has(participant.id)}
+                      onChange={() => handleSelectParticipant(participant.id)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{index + 1}</TableCell>
                   <TableCell className="font-medium">{participant.name}</TableCell>
                   <TableCell>{participant.organization}</TableCell>
@@ -430,7 +725,7 @@ export function ParticipantList({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -458,6 +753,19 @@ export function ParticipantList({
             onChange={(event) => setSearchQuery(event.target.value)}
             className="pl-9"
           />
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            className="flex items-center gap-2"
+          >
+            {selectedParticipants.size === sortedAndFilteredParticipants.length ? "Deselect All" : "Select All"}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {selectedParticipants.size} of {sortedAndFilteredParticipants.length} selected
+          </span>
         </div>
       </div>
       
@@ -493,12 +801,22 @@ export function ParticipantList({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleSendQRCodesToAll}
-          disabled={isBulkEmailLoading}
+          onClick={handleSendQRCodesToSelected}
+          disabled={isBulkEmailLoading || selectedParticipants.size === 0}
           className="flex items-center gap-2 flex-shrink-0"
         >
           <Send className="h-4 w-4" />
-          {isBulkEmailLoading ? "Sending..." : "Send QR Codes"}
+          {isBulkEmailLoading ? "Sending..." : `Send QR Codes (${selectedParticipants.size})`}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFollowUpDialog(true)}
+          disabled={isBulkFollowUpLoading || selectedParticipants.size === 0}
+          className="flex items-center gap-2 flex-shrink-0"
+        >
+          <Mail className="h-4 w-4" />
+          {isBulkFollowUpLoading ? "Sending..." : `Send Thank You Email (${selectedParticipants.size})`}
         </Button>
       </div>
       
@@ -514,6 +832,17 @@ export function ParticipantList({
               className="pl-9"
             />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            className="flex items-center gap-2"
+          >
+            {selectedParticipants.size === sortedAndFilteredParticipants.length ? "Deselect All" : "Select All"}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {selectedParticipants.size} of {sortedAndFilteredParticipants.length} selected
+          </span>
         </div>
       </div>
      
@@ -619,6 +948,224 @@ export function ParticipantList({
                 Download PNG
             </Button>
             <Button onClick={() => setIsQRDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="text-accent" />
+              Send Thank You Email
+            </DialogTitle>
+            <DialogDescription>
+              Send a thank you message to {selectedParticipants.size} selected participant{selectedParticipants.size !== 1 ? 's' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <label htmlFor="followUpMessage" className="text-sm font-medium mb-2 block">
+                Thank You Message (Optional)
+              </label>
+              <textarea
+                id="followUpMessage"
+                value={followUpMessage}
+                onChange={(e) => setFollowUpMessage(e.target.value)}
+                placeholder="Enter your thank you message here..."
+                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty to send a general thank you message.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="surveyLink" className="text-sm font-medium mb-2 block">
+                Survey Form Link (Optional)
+              </label>
+              <input
+                id="surveyLink"
+                type="url"
+                value={surveyLink}
+                onChange={(e) => setSurveyLink(e.target.value)}
+                placeholder=""
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Add a survey link to collect feedback from participants.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="qrCodeImage" className="text-sm font-medium mb-2 block">
+                QR Code Image (Optional)
+              </label>
+              <input
+                id="qrCodeImage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setQrCodeImage(e.target.files?.[0] || null)}
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload a QR code image that links to the survey form. This will be displayed below the survey button.
+              </p>
+              {qrCodeImage && (
+                <div className="mt-2">
+                  <p className="text-xs text-green-600">✓ {qrCodeImage.name} selected</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setFollowUpMessage("");
+                setSurveyLink("");
+                setQrCodeImage(null);
+                setShowFollowUpDialog(false);
+                setSelectedQRParticipant(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendFollowUpToSelected}
+              disabled={isBulkFollowUpLoading}
+            >
+              {isBulkFollowUpLoading ? "Sending..." : "Send Thank You"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showProgressDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="text-accent" />
+              Sending Thank You Emails
+            </DialogTitle>
+            <DialogDescription>
+              Please wait while we send thank you emails to the selected participants.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>{emailProgress.sent + emailProgress.failed} of {emailProgress.total}</span>
+              </div>
+              <Progress 
+                value={emailProgress.total > 0 ? ((emailProgress.sent + emailProgress.failed) / emailProgress.total) * 100 : 0} 
+                className="w-full"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Sent: {emailProgress.sent}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span>Failed: {emailProgress.failed}</span>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-sm font-medium text-gray-700">
+                {emailProgress.current || "Preparing to send emails..."}
+              </p>
+            </div>
+
+            {emailProgress.errors.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-red-600">Errors:</h4>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {emailProgress.errors.map((error, index) => (
+                    <p key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                      {error}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowProgressDialog(false)}
+              disabled={emailProgress.sent + emailProgress.failed < emailProgress.total}
+            >
+              {emailProgress.sent + emailProgress.failed < emailProgress.total ? "Sending..." : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showQRProgressDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="text-accent" />
+              Sending QR Code Emails
+            </DialogTitle>
+            <DialogDescription>
+              Please wait while we send QR code emails to the selected participants.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>{qrProgress.sent + qrProgress.failed} of {qrProgress.total}</span>
+              </div>
+              <Progress 
+                value={qrProgress.total > 0 ? ((qrProgress.sent + qrProgress.failed) / qrProgress.total) * 100 : 0} 
+                className="w-full"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Sent: {qrProgress.sent}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span>Failed: {qrProgress.failed}</span>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-md">
+              <p className="text-sm font-medium text-gray-700">
+                {qrProgress.current || "Preparing to send QR codes..."}
+              </p>
+            </div>
+
+            {qrProgress.errors.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-red-600">Errors:</h4>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {qrProgress.errors.map((error, index) => (
+                    <p key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                      {error}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowQRProgressDialog(false)}
+              disabled={qrProgress.sent + qrProgress.failed < qrProgress.total}
+            >
+              {qrProgress.sent + qrProgress.failed < qrProgress.total ? "Sending..." : "Close"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
