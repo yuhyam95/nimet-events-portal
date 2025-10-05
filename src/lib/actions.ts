@@ -689,8 +689,8 @@ export async function authenticateUser(email: string, password: string): Promise
 }
 
 // Attendance functions
-export async function markAttendance(participantId: string, eventId: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
-  console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId);
+export async function markAttendance(participantId: string, eventId: string, attendanceDate?: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
+  console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId, 'attendanceDate:', attendanceDate);
   console.log('participantId isValid:', ObjectId.isValid(participantId));
   console.log('eventId isValid:', ObjectId.isValid(eventId));
   
@@ -712,21 +712,26 @@ export async function markAttendance(participantId: string, eventId: string): Pr
       return { success: false, error: "Participant not found for this event" };
     }
     
-    // Check if already checked in
+    // Use provided date or default to today
+    const dateToUse = attendanceDate || new Date().toISOString().split('T')[0];
+    
+    // Check if already checked in for this specific date
     const existingAttendance = await db.collection("attendance").findOne({
       participantId: new ObjectId(participantId),
-      eventId: new ObjectId(eventId)
+      eventId: new ObjectId(eventId),
+      attendanceDate: dateToUse
     });
     
     if (existingAttendance) {
       return { 
         success: false, 
-        error: "Participant has already been marked as present",
+        error: `Participant has already been marked as present for ${dateToUse}`,
         attendance: {
           id: existingAttendance._id.toString(),
           participantId: existingAttendance.participantId.toString(),
           eventId: existingAttendance.eventId.toString(),
           checkedInAt: existingAttendance.checkedInAt,
+          attendanceDate: existingAttendance.attendanceDate,
           participantName: participant.name,
           participantOrganization: participant.organization
         }
@@ -738,7 +743,8 @@ export async function markAttendance(participantId: string, eventId: string): Pr
     const attendanceData = {
       participantId: new ObjectId(participantId),
       eventId: new ObjectId(eventId),
-      checkedInAt: now
+      checkedInAt: now,
+      attendanceDate: dateToUse
     };
     
     const result = await db.collection("attendance").insertOne(attendanceData);
@@ -750,6 +756,7 @@ export async function markAttendance(participantId: string, eventId: string): Pr
         participantId: participantId,
         eventId: eventId,
         checkedInAt: now,
+        attendanceDate: dateToUse,
         participantName: participant.name,
         participantOrganization: participant.organization
       }
@@ -760,16 +767,21 @@ export async function markAttendance(participantId: string, eventId: string): Pr
   }
 }
 
-export async function getAttendanceByEventId(eventId: string): Promise<Attendance[]> {
+export async function getAttendanceByEventId(eventId: string, attendanceDate?: string): Promise<Attendance[]> {
   if (!ObjectId.isValid(eventId)) {
     return [];
   }
 
   try {
     const db = await getDb();
-    const attendance = await db.collection("attendance").find({ 
-      eventId: new ObjectId(eventId) 
-    }).sort({ checkedInAt: -1 }).toArray();
+    
+    // Build query filter
+    const filter: any = { eventId: new ObjectId(eventId) };
+    if (attendanceDate) {
+      filter.attendanceDate = attendanceDate;
+    }
+    
+    const attendance = await db.collection("attendance").find(filter).sort({ checkedInAt: -1 }).toArray();
     
     // Get participant details for each attendance record
     const participantIds = attendance.map(a => a.participantId);
@@ -784,6 +796,7 @@ export async function getAttendanceByEventId(eventId: string): Promise<Attendanc
       participantId: a.participantId.toString(),
       eventId: a.eventId.toString(),
       checkedInAt: a.checkedInAt,
+      attendanceDate: a.attendanceDate || new Date(a.checkedInAt).toISOString().split('T')[0],
       participantName: participantMap.get(a.participantId.toString())?.name || "Unknown",
       participantOrganization: participantMap.get(a.participantId.toString())?.organization || "Unknown"
     }));
@@ -793,7 +806,7 @@ export async function getAttendanceByEventId(eventId: string): Promise<Attendanc
   }
 }
 
-export async function getAttendanceStats(eventId: string): Promise<{ totalParticipants: number; checkedIn: number; notCheckedIn: number }> {
+export async function getAttendanceStats(eventId: string, attendanceDate?: string): Promise<{ totalParticipants: number; checkedIn: number; notCheckedIn: number }> {
   if (!ObjectId.isValid(eventId)) {
     return { totalParticipants: 0, checkedIn: 0, notCheckedIn: 0 };
   }
@@ -802,14 +815,18 @@ export async function getAttendanceStats(eventId: string): Promise<{ totalPartic
     const db = await getDb();
     
     // Get total participants for the event
-    const totalParticipants = await db.collection("participants").countDocuments({
-      eventId: new ObjectId(eventId)
+    const totalParticipants = await db.collection("participants").countDocuments({ 
+      eventId: new ObjectId(eventId) 
     });
     
-    // Get checked in count
-    const checkedIn = await db.collection("attendance").countDocuments({
-      eventId: new ObjectId(eventId)
-    });
+    // Build attendance filter
+    const attendanceFilter: any = { eventId: new ObjectId(eventId) };
+    if (attendanceDate) {
+      attendanceFilter.attendanceDate = attendanceDate;
+    }
+    
+    // Get checked in count for the specific date or all time
+    const checkedIn = await db.collection("attendance").countDocuments(attendanceFilter);
     
     return {
       totalParticipants,
@@ -819,6 +836,41 @@ export async function getAttendanceStats(eventId: string): Promise<{ totalPartic
   } catch (error) {
     console.error("Error fetching attendance stats:", error);
     return { totalParticipants: 0, checkedIn: 0, notCheckedIn: 0 };
+  }
+}
+
+export async function getAttendanceStatsByDate(eventId: string): Promise<{ date: string; totalParticipants: number; checkedIn: number; notCheckedIn: number }[]> {
+  if (!ObjectId.isValid(eventId)) {
+    return [];
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Get total participants for the event
+    const totalParticipants = await db.collection("participants").countDocuments({ 
+      eventId: new ObjectId(eventId) 
+    });
+    
+    // Get all attendance records grouped by date
+    const attendanceByDate = await db.collection("attendance").aggregate([
+      { $match: { eventId: new ObjectId(eventId) } },
+      { $group: { 
+        _id: "$attendanceDate", 
+        checkedIn: { $sum: 1 }
+      }},
+      { $sort: { _id: 1 } }
+    ]).toArray();
+    
+    return attendanceByDate.map(record => ({
+      date: record._id,
+      totalParticipants,
+      checkedIn: record.checkedIn,
+      notCheckedIn: totalParticipants - record.checkedIn
+    }));
+  } catch (error) {
+    console.error("Error fetching attendance stats by date:", error);
+    return [];
   }
 }
 

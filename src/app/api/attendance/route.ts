@@ -5,7 +5,7 @@ import { decryptQRCodeData } from '@/lib/qr-generator';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { qrData, eventId } = body;
+    const { qrData, eventId, attendanceDate } = body;
 
     if (!qrData || !eventId) {
       return NextResponse.json(
@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark attendance
-    const result = await markAttendance(participantId, eventId);
+    // Mark attendance with optional date
+    const result = await markAttendance(participantId, eventId, attendanceDate);
 
     if (result.success) {
       return NextResponse.json({
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
+    const attendanceDate = searchParams.get('attendanceDate');
 
     if (!eventId) {
       return NextResponse.json(
@@ -64,11 +65,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // This would be used to get attendance data
-    // For now, return a simple response
+    // Import the function here to avoid circular dependencies
+    const { getAttendanceByEventId } = await import('@/lib/actions');
+    
+    const attendance = await getAttendanceByEventId(eventId, attendanceDate || undefined);
+
     return NextResponse.json({
       success: true,
-      message: 'Attendance endpoint is working'
+      attendance
     });
   } catch (error) {
     console.error('Attendance GET API error:', error);

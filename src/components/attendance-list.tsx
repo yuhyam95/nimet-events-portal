@@ -54,10 +54,12 @@ export function AttendanceList({
     let sortableItems = [...attendance];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const aValue = a[sortConfig.key] ?? '';
+        const bValue = b[sortConfig.key] ?? '';
+        if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === "ascending" ? 1 : -1;
         }
         return 0;
@@ -76,6 +78,7 @@ export function AttendanceList({
       "S/N",
       "Participant Name",
       "Organization", 
+      "Attendance Date",
       "Checked In At"
     ];
 
@@ -86,6 +89,7 @@ export function AttendanceList({
         index + 1,
         `"${record.participantName}"`,
         `"${record.participantOrganization}"`,
+        `"${record.attendanceDate}"`,
         `"${format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}"`
       ].join(","))
     ].join("\n");
@@ -134,6 +138,10 @@ export function AttendanceList({
               {record.participantOrganization}
             </p>
             <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Attendance Date: </span>
+              {record.attendanceDate}
+            </p>
+            <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Checked In: </span>
               {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
             </p>
@@ -151,6 +159,7 @@ export function AttendanceList({
               <TableHead>S/N</TableHead>
               <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
               <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
+              <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
               <SortableHeader sortKey="checkedInAt">Checked In At</SortableHeader>
             </TableRow>
           </TableHeader>
@@ -165,13 +174,16 @@ export function AttendanceList({
                   </TableCell>
                   <TableCell>{record.participantOrganization}</TableCell>
                   <TableCell className="text-muted-foreground">
+                    {record.attendanceDate}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No attendance records found.
                 </TableCell>
               </TableRow>
@@ -184,7 +196,7 @@ export function AttendanceList({
   return (
     <>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold font-headline">Attendance Records</h2>
+        {/* <h2 className="text-2xl font-bold font-headline">Attendance Records</h2> */}
         <p className="text-muted-foreground mt-1">
           {sortedAndFilteredAttendance.length} attendance record{sortedAndFilteredAttendance.length !== 1 ? 's' : ''}
         </p>

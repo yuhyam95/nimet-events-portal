@@ -30,6 +30,7 @@ export interface Attendance {
   participantId: string;
   eventId: string;
   checkedInAt: string;
+  attendanceDate: string; // Date in YYYY-MM-DD format for day-by-day tracking
   participantName?: string;
   participantOrganization?: string;
 }
