@@ -90,13 +90,13 @@ export function DayByDayAttendance({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold font-headline flex items-center gap-2">
-          <Calendar className="h-6 w-6" />
+        <h2 className="text-lg font-semibold font-headline flex items-center gap-2">
+          <Calendar className="h-3 w-3" />
           Day-by-Day Attendance
         </h2>
-        <p className="text-muted-foreground mt-1">
+        {/* <p className="text-muted-foreground mt-1">
           Track attendance for each day of the event
-        </p>
+        </p> */}
       </div>
 
       {/* Event Days Overview */}
@@ -114,20 +114,16 @@ export function DayByDayAttendance({
               key={dateStr} 
               className={`cursor-pointer transition-all hover:shadow-md ${
                 selectedDate === dateStr 
-                  ? 'ring-2 ring-blue-500 bg-blue-50' 
-                  : isToday 
-                    ? 'border-green-200 bg-green-50' 
-                    : isPast 
-                      ? 'border-gray-200' 
-                      : 'border-gray-100 bg-gray-50'
+                  ? 'bg-green-50 border-green-500 text-green-800' 
+                  : 'bg-white text-black border-primary'
               }`}
               onClick={() => handleDateSelect(dateStr)}
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center justify-between">
                   <span>{format(day, 'EEEE, MMM dd')}</span>
-                  {isToday && <Badge variant="secondary" className="text-xs">Today</Badge>}
-                  {isFuture && <Badge variant="outline" className="text-xs">Future</Badge>}
+                  {isToday && <Badge variant="secondary" className={`text-xs ${selectedDate === dateStr ? 'bg-green-100 text-green-800' : 'bg-primary/20 text-primary'}`}>Today</Badge>}
+                  {isFuture && <Badge variant="outline" className={`text-xs ${selectedDate === dateStr ? 'border-green-300 text-green-700' : 'border-primary/30 text-primary'}`}>Future</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -135,7 +131,7 @@ export function DayByDayAttendance({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Attendance Rate</span>
-                      <span className="font-semibold text-green-600">{attendanceRate}%</span>
+                      <span className="font-semibold text-green-700">{attendanceRate}%</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Present</span>
@@ -143,7 +139,7 @@ export function DayByDayAttendance({
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Absent</span>
-                      <span className="font-semibold text-red-600">{dayStats.notCheckedIn}</span>
+                      <span className="font-semibold text-red-700">{dayStats.notCheckedIn}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
@@ -170,9 +166,9 @@ export function DayByDayAttendance({
       {selectedDate && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">
+            <h6 className="text-xl font-semibold">
               Attendance for {format(parseISO(selectedDate), 'EEEE, MMMM dd, yyyy')}
-            </h3>
+            </h6>
             {/* <Button 
               variant="outline" 
               size="sm"

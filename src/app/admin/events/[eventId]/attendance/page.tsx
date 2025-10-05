@@ -42,47 +42,47 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
         </div>
       </div>
       
-      <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+      <CardTitle className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-4 w-4" />
             Overall Event Statistics
       </CardTitle>
       {/* Attendance Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       
-        <Card>
+        <Card className="bg-blue-50 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Participants</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-blue-800">Total Participants</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalParticipants}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-blue-700">{stats.totalParticipants}</div>
+            <p className="text-xs text-blue-600">
               Registered for this event
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-green-50 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Present</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-800">Present</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.checkedIn}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-green-700">{stats.checkedIn}</div>
+            <p className="text-xs text-green-600">
               {stats.totalParticipants > 0 ? Math.round((stats.checkedIn / stats.totalParticipants) * 100) : 0}% attendance rate
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-red-50 border-red-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Absent</CardTitle>
+            <CardTitle className="text-sm font-medium text-red-800">Absent</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.notCheckedIn}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-red-700">{stats.notCheckedIn}</div>
+            <p className="text-xs text-red-600">
               {stats.totalParticipants > 0 ? Math.round((stats.notCheckedIn / stats.totalParticipants) * 100) : 0}% absent
             </p>
           </CardContent>
