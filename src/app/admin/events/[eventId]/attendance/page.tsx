@@ -30,7 +30,7 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="default" size="sm" asChild className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">
           <Link href="/admin/events">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Events

@@ -34,7 +34,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent className="pt-16">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/events')}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/events')} className="text-black font-bold">
                   <Link href="/admin/events">
                     <Calendar />
                     <span>Events</span>
@@ -42,15 +42,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/participants')}>
-                  <Link href="/admin/participants">
-                    <Users />
-                    <span>Participants</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/users')}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/users')} className="text-black font-bold">
                   <Link href="/admin/users">
                     <UserCog />
                     <span>Users</span>
@@ -58,7 +50,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/profile')}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/profile')} className="text-black font-bold">
                   <Link href="/admin/profile">
                     <User />
                     <span>Profile</span>

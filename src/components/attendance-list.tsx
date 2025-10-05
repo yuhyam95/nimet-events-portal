@@ -106,8 +106,8 @@ export function AttendanceList({
   };
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
-    <TableHead>
-        <Button variant="ghost" onClick={() => handleSort(sortKey)}>
+    <TableHead className="bg-green-50">
+        <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
         {children}
         {sortConfig?.key === sortKey ? (
             sortConfig.direction === "ascending" ? (
@@ -155,8 +155,8 @@ export function AttendanceList({
      <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>S/N</TableHead>
+            <TableRow className="bg-green-50">
+              <TableHead className="bg-green-50">S/N</TableHead>
               <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
               <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
               <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
@@ -213,10 +213,10 @@ export function AttendanceList({
           />
         </div>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={exportToCSV}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
         >
           <Download className="h-4 w-4" />
           Export CSV

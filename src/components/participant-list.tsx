@@ -575,8 +575,8 @@ export function ParticipantList({
   };
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
-    <TableHead>
-        <Button variant="ghost" onClick={() => handleSort(sortKey)}>
+    <TableHead className="bg-green-50">
+        <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
         {children}
         {sortConfig?.key === sortKey ? (
             sortConfig.direction === "ascending" ? (
@@ -625,27 +625,27 @@ export function ParticipantList({
             </p>
             <div className="flex flex-col gap-2 mt-4">
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-                className="flex-1"
+                className="flex-1 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
               onClick={() => handleGenerateTag(participant)}
             >
               <Sparkles className="mr-2 h-4 w-4" />
               Generate Flyer
             </Button>
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
                 onClick={() => handleGenerateQRCode(participant)}
               >
                 <QrCode className="mr-2 h-4 w-4" />
                 View QR Code
               </Button>
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => handleSendQRCodeEmail(participant)}
                 disabled={isEmailLoading}
               >
@@ -663,8 +663,8 @@ export function ParticipantList({
       <div className="rounded-md border overflow-x-auto">
         <Table className="min-w-full">
           <TableHeader>
-            <TableRow>
-              <TableHead>
+            <TableRow className="bg-green-50">
+              <TableHead className="bg-green-50">
                 <input
                   type="checkbox"
                   checked={selectedParticipants.size === sortedAndFilteredParticipants.length && sortedAndFilteredParticipants.length > 0}
@@ -672,13 +672,13 @@ export function ParticipantList({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
               </TableHead>
-              <TableHead>S/N</TableHead>
+              <TableHead className="bg-green-50">S/N</TableHead>
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
               <SortableHeader sortKey="designation">Position</SortableHeader>
               <SortableHeader sortKey="contact">Contact</SortableHeader>
               <SortableHeader sortKey="phone">Phone</SortableHeader>
-              <TableHead>Actions</TableHead>
+              <TableHead className="bg-green-50">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -701,18 +701,18 @@ export function ParticipantList({
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateTag(participant)}>
+                      <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateTag(participant)}>
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generate Flyer
                     </Button>
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateQRCode(participant)}>
+                      <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateQRCode(participant)}>
                         <QrCode className="mr-2 h-4 w-4" />
                         QR Code
                       </Button>
                       <Button 
-                        variant="outline" 
+                        variant="default" 
                         size="sm" 
-                        className="w-full"
+                        className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => handleSendQRCodeEmail(participant)}
                         disabled={isEmailLoading}
                       >
@@ -756,10 +756,10 @@ export function ParticipantList({
         </div>
         <div className="flex items-center justify-between mt-2">
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={handleSelectAll}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
           >
             {selectedParticipants.size === sortedAndFilteredParticipants.length ? "Deselect All" : "Select All"}
           </Button>
@@ -772,10 +772,10 @@ export function ParticipantList({
       {/* Action buttons - horizontal row on both mobile and desktop */}
       <div className="flex items-center gap-2 py-4 overflow-x-auto">
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={toggleSortOrder}
-          className="flex items-center gap-2 flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
         >
           {sortOrder === "ascending" ? (
             <>
@@ -790,30 +790,30 @@ export function ParticipantList({
           )}
         </Button>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={exportToCSV}
-          className="flex items-center gap-2 flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
         >
           <Download className="h-4 w-4" />
           Export CSV
         </Button>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={handleSendQRCodesToSelected}
           disabled={isBulkEmailLoading || selectedParticipants.size === 0}
-          className="flex items-center gap-2 flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="h-4 w-4" />
           {isBulkEmailLoading ? "Sending..." : `Send QR Codes (${selectedParticipants.size})`}
         </Button>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={() => setShowFollowUpDialog(true)}
           disabled={isBulkFollowUpLoading || selectedParticipants.size === 0}
-          className="flex items-center gap-2 flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Mail className="h-4 w-4" />
           {isBulkFollowUpLoading ? "Sending..." : `Send Thank You Email (${selectedParticipants.size})`}
@@ -833,10 +833,10 @@ export function ParticipantList({
             />
           </div>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={handleSelectAll}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
           >
             {selectedParticipants.size === sortedAndFilteredParticipants.length ? "Deselect All" : "Select All"}
           </Button>
@@ -882,18 +882,19 @@ export function ParticipantList({
           </div>
           <DialogFooter>
             <Button 
-                variant="outline" 
+                variant="default" 
                 onClick={() => {
                     if (generatedFlyer && selectedParticipant) {
                         downloadFlyer(generatedFlyer, `${selectedParticipant.name}-flyer.png`);
                     }
                 }}
                 disabled={!generatedFlyer}
+                className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <Printer className="mr-2 h-4 w-4" />
                 Download PNG
             </Button>
-            <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+            <Button onClick={() => setIsDialogOpen(false)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -936,18 +937,19 @@ export function ParticipantList({
           </div>
           <DialogFooter>
             <Button 
-                variant="outline" 
+                variant="default" 
                 onClick={() => {
                     if (generatedQRCode && selectedQRParticipant) {
                         downloadQRCode(generatedQRCode, `${selectedQRParticipant.name}-qr-code.png`);
                     }
                 }}
                 disabled={!generatedQRCode}
+                className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <Download className="mr-2 h-4 w-4" />
                 Download PNG
             </Button>
-            <Button onClick={() => setIsQRDialogOpen(false)}>Close</Button>
+            <Button onClick={() => setIsQRDialogOpen(false)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1019,7 +1021,7 @@ export function ParticipantList({
           </div>
           <DialogFooter>
             <Button 
-              variant="outline" 
+              variant="default" 
               onClick={() => {
                 setFollowUpMessage("");
                 setSurveyLink("");
@@ -1027,12 +1029,14 @@ export function ParticipantList({
                 setShowFollowUpDialog(false);
                 setSelectedQRParticipant(null);
               }}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSendFollowUpToSelected}
               disabled={isBulkFollowUpLoading}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isBulkFollowUpLoading ? "Sending..." : "Send Thank You"}
             </Button>
@@ -1095,9 +1099,10 @@ export function ParticipantList({
           </div>
           <DialogFooter>
             <Button 
-              variant="outline" 
+              variant="default" 
               onClick={() => setShowProgressDialog(false)}
               disabled={emailProgress.sent + emailProgress.failed < emailProgress.total}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {emailProgress.sent + emailProgress.failed < emailProgress.total ? "Sending..." : "Close"}
             </Button>
@@ -1160,9 +1165,10 @@ export function ParticipantList({
           </div>
           <DialogFooter>
             <Button 
-              variant="outline" 
+              variant="default" 
               onClick={() => setShowQRProgressDialog(false)}
               disabled={qrProgress.sent + qrProgress.failed < qrProgress.total}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {qrProgress.sent + qrProgress.failed < qrProgress.total ? "Sending..." : "Close"}
             </Button>

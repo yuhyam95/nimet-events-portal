@@ -129,7 +129,7 @@ export function DayByDayAttendance({
               <CardContent className="pt-0">
                 {dayStats ? (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm">~
                       <span className="text-muted-foreground">Attendance Rate</span>
                       <span className="font-semibold text-green-700">{attendanceRate}%</span>
                     </div>
