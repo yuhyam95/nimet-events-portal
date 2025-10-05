@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { addEvent, updateEvent } from "@/lib/actions";
 import type { Event } from "@/lib/types";
@@ -32,6 +33,8 @@ const formSchema = z.object({
   endDate: z.date({ required_error: "End date is required." }),
   location: z.string().min(3, { message: "Location must be at least 3 characters." }),
   theme: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isInternal: z.boolean().optional(),
 });
 
 interface EventFormProps {
@@ -51,6 +54,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
       endDate: event?.endDate ? new Date(event.endDate + 'T00:00:00') : undefined,
       location: event?.location || "",
       theme: event?.description || "",
+      isActive: event?.isActive ?? true, // Default to true for new events
+      isInternal: event?.isInternal ?? false, // Default to external for new events
     },
   });
 
@@ -69,6 +74,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         startDate: formatDateToYYYYMMDD(values.startDate), // Convert start date to string format
         endDate: formatDateToYYYYMMDD(values.endDate), // Convert end date to string format
         description: values.theme || "", // Map theme to description for backend compatibility
+        isActive: values.isActive ?? true, // Include active status
+        isInternal: values.isInternal ?? false, // Include internal status
       };
       
       if (event?.id) {
@@ -238,6 +245,50 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5 flex-1">
+                <div className="flex items-center gap-3">
+                  <FormLabel className="text-base">Event Status</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </div>
+                <FormDescription>
+                  Toggle to make this event active or inactive. Active events are visible.
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="isInternal"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5 flex-1">
+                <div className="flex items-center gap-3">
+                  <FormLabel className="text-base">Event Type</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </div>
+                <FormDescription>
+                  Toggle for NiMet internal or external event. Internal events hide organization/designation fields.
+                </FormDescription>
+              </div>
             </FormItem>
           )}
         />

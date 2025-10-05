@@ -117,7 +117,7 @@ export function ParticipantList({
       "S/N",
       "Name",
       "Organization", 
-      "Designation",
+      "Position",
       "Contact",
       "Phone"
     ];
@@ -603,7 +603,7 @@ export function ParticipantList({
                 onChange={() => handleSelectParticipant(participant.id)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <CardTitle>{participant.name}</CardTitle>
+            <CardTitle>{participant.name}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -612,7 +612,7 @@ export function ParticipantList({
               {participant.organization}
             </p>
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">Designation: </span>
+              <span className="font-semibold text-foreground">Position: </span>
               {participant.designation}
             </p>
             <p className="text-sm text-muted-foreground">
@@ -624,15 +624,15 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex flex-col gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
+            <Button
+              variant="outline"
+              size="sm"
                 className="flex-1"
-                onClick={() => handleGenerateTag(participant)}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Flyer
-              </Button>
+              onClick={() => handleGenerateTag(participant)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Generate Flyer
+            </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -675,7 +675,7 @@ export function ParticipantList({
               <TableHead>S/N</TableHead>
               <SortableHeader sortKey="name">Name</SortableHeader>
               <SortableHeader sortKey="organization">Organization</SortableHeader>
-              <SortableHeader sortKey="designation">Designation</SortableHeader>
+              <SortableHeader sortKey="designation">Position</SortableHeader>
               <SortableHeader sortKey="contact">Contact</SortableHeader>
               <SortableHeader sortKey="phone">Phone</SortableHeader>
               <TableHead>Actions</TableHead>
@@ -702,9 +702,9 @@ export function ParticipantList({
                   <TableCell>
                     <div className="flex flex-col gap-2">
                       <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateTag(participant)}>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate Flyer
-                      </Button>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Flyer
+                    </Button>
                       <Button variant="outline" size="sm" className="w-full" onClick={() => handleGenerateQRCode(participant)}>
                         <QrCode className="mr-2 h-4 w-4" />
                         QR Code

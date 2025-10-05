@@ -68,7 +68,7 @@ export default async function SlugPage({ params }: { params: Promise<{ slug: str
                  </CardDescription>
             </CardHeader>
             <CardContent>
-                <RegistrationForm eventId={event.id} />
+                <RegistrationForm eventId={event.id} event={event} />
             </CardContent>
         </Card>
       </div>

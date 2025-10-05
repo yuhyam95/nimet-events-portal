@@ -211,6 +211,16 @@ export function EventList() {
               <span className="font-semibold">Location: </span>
               {event.location}
             </p>
+            <p className="text-sm">
+              <span className="font-semibold">Status: </span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                event.isActive 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {event.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </p>
              <p className="text-sm text-muted-foreground pt-2">
               {event.description}
             </p>
@@ -267,6 +277,7 @@ export function EventList() {
               <SortableHeader sortKey="startDate">Start Date</SortableHeader>
               <SortableHeader sortKey="endDate">End Date</SortableHeader>
               <SortableHeader sortKey="location">Location</SortableHeader>
+              <SortableHeader sortKey="isActive">Status</SortableHeader>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -278,6 +289,15 @@ export function EventList() {
                   <TableCell>{formatEventDate(event.startDate)}</TableCell>
                   <TableCell>{formatEventDate(event.endDate)}</TableCell>
                   <TableCell>{event.location}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      event.isActive 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {event.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </TableCell>
                   <TableCell>
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>

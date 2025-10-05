@@ -10,7 +10,7 @@ import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   organization: z.string().min(2, { message: "Organization must be at least 2 characters." }),
-  designation: z.string().min(2, { message: "Designation must be at least 2 characters." }),
+  designation: z.string().min(2, { message: "Position must be at least 2 characters." }),
   contact: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(11, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
@@ -23,6 +23,8 @@ const EventSchema = z.object({
     endDate: z.string().min(1, { message: "End date is required." }),
     location: z.string().min(3, { message: "Location must be at least 3 characters." }),
     description: z.string().optional(),
+    isActive: z.boolean().optional(),
+    isInternal: z.boolean().optional(),
 });
 
 const UserSchema = z.object({
@@ -71,15 +73,30 @@ export async function getEvents(): Promise<Event[]> {
   try {
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ startDate: 1 }).toArray();
-    return events.map((event) => ({
-      id: event._id.toString(),
-      name: event.name,
-      slug: event.slug || event._id.toString(), // Use slug or fallback to ID
-      startDate: event.startDate || event.date, // Handle both old and new field names
-      endDate: event.endDate || event.date, // Handle both old and new field names
-      location: event.location,
-      description: event.description,
-    }));
+    const now = new Date();
+    
+    return events.map((event) => {
+      const startDate = new Date(event.startDate || event.date);
+      const endDate = new Date(event.endDate || event.date);
+      
+      // Calculate if event should be active based on dates
+      const shouldBeActive = now >= startDate && now <= endDate;
+      
+      // Use stored isActive if it exists, otherwise calculate based on dates
+      const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+      
+      return {
+        id: event._id.toString(),
+        name: event.name,
+        slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+        startDate: event.startDate || event.date, // Handle both old and new field names
+        endDate: event.endDate || event.date, // Handle both old and new field names
+        location: event.location,
+        description: event.description,
+        isActive: isActive,
+        isInternal: event.isInternal ?? false,
+      };
+    });
   } catch (error) {
     console.error("Error fetching events:", error);
     return [];
@@ -94,6 +111,17 @@ export async function getEventById(id: string): Promise<Event | null> {
     const db = await getDb();
     const event = await db.collection("events").findOne({ _id: new ObjectId(id) });
     if (!event) return null;
+    
+    const now = new Date();
+    const startDate = new Date(event.startDate || event.date);
+    const endDate = new Date(event.endDate || event.date);
+    
+    // Calculate if event should be active based on dates
+    const shouldBeActive = now >= startDate && now <= endDate;
+    
+    // Use stored isActive if it exists, otherwise calculate based on dates
+    const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+    
     return {
       id: event._id.toString(),
       name: event.name,
@@ -102,6 +130,8 @@ export async function getEventById(id: string): Promise<Event | null> {
       endDate: event.endDate || event.date, // Handle both old and new field names
       location: event.location,
       description: event.description,
+      isActive: isActive,
+      isInternal: event.isInternal ?? false,
     };
   } catch (error) {
     console.error(`Error fetching event by id ${id}:`, error);
@@ -114,6 +144,17 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
     const db = await getDb();
     const event = await db.collection("events").findOne({ slug });
     if (!event) return null;
+    
+    const now = new Date();
+    const startDate = new Date(event.startDate || event.date);
+    const endDate = new Date(event.endDate || event.date);
+    
+    // Calculate if event should be active based on dates
+    const shouldBeActive = now >= startDate && now <= endDate;
+    
+    // Use stored isActive if it exists, otherwise calculate based on dates
+    const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+    
     return {
       id: event._id.toString(),
       name: event.name,
@@ -122,6 +163,8 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       endDate: event.endDate || event.date, // Handle both old and new field names
       location: event.location,
       description: event.description,
+      isActive: isActive,
+      isInternal: event.isInternal ?? false,
     };
   } catch (error) {
     console.error(`Error fetching event by slug ${slug}:`, error);
@@ -144,7 +187,18 @@ export async function addEvent(data: unknown) {
             throw new Error("An event with this URL slug already exists. Please choose a different slug.");
         }
         
-        await db.collection("events").insertOne(validation.data);
+        // Calculate isActive based on dates if not provided
+        const now = new Date();
+        const startDate = new Date(validation.data.startDate);
+        const endDate = new Date(validation.data.endDate);
+        const shouldBeActive = now >= startDate && now <= endDate;
+        
+        const eventData = {
+            ...validation.data,
+            isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
+        };
+        
+        await db.collection("events").insertOne(eventData);
     } catch (error) {
         console.error("Failed to add event:", error);
         throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add event.");
@@ -173,9 +227,20 @@ export async function updateEvent(id: string, data: unknown) {
             throw new Error("An event with this URL slug already exists. Please choose a different slug.");
         }
         
+        // Calculate isActive based on dates if not provided
+        const now = new Date();
+        const startDate = new Date(validation.data.startDate);
+        const endDate = new Date(validation.data.endDate);
+        const shouldBeActive = now >= startDate && now <= endDate;
+        
+        const eventData = {
+            ...validation.data,
+            isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
+        };
+        
         const result = await db.collection("events").updateOne(
             { _id: new ObjectId(id) },
-            { $set: validation.data }
+            { $set: eventData }
         );
         
         if (result.matchedCount === 0) {
@@ -269,7 +334,7 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
    }
 }
 
-export async function addParticipant(data: unknown): Promise<{ success: boolean; error?: string }> {
+export async function addParticipant(data: unknown): Promise<{ success: boolean; error?: string; participantId?: string }> {
   const validation = ParticipantSchema.safeParse(data);
   if (!validation.success) {
     return { success: false, error: "Invalid participant data" };
@@ -318,6 +383,12 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
       if (event) {
         // Map event data to match Event type
+        const now = new Date();
+        const startDate = new Date(event.startDate || event.date);
+        const endDate = new Date(event.endDate || event.date);
+        const shouldBeActive = now >= startDate && now <= endDate;
+        const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+        
         const mappedEvent: Event = {
           id: event._id.toString(),
           name: event.name,
@@ -326,6 +397,8 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
           endDate: event.endDate || event.date,
           location: event.location,
           description: event.description,
+          isActive: isActive,
+          isInternal: event.isInternal ?? false,
         };
 
         // Map participant data to match component format (with id field)
@@ -358,7 +431,7 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       // Note: We don't throw here to avoid failing the registration if email fails
     }
 
-    return { success: true };
+    return { success: true, participantId: result.insertedId.toString() };
   } catch (error) {
     console.error("Failed to add participant:", error);
     
@@ -793,7 +866,9 @@ export async function sendQRCodeToParticipant(participantId: string, eventId: st
       startDate: event.startDate || event.date,
       endDate: event.endDate || event.date,
       location: event.location,
-      description: event.description
+      description: event.description,
+      isActive: event.isActive !== undefined ? event.isActive : (new Date() >= new Date(event.startDate || event.date) && new Date() <= new Date(event.endDate || event.date)),
+      isInternal: event.isInternal ?? false,
     };
 
     // Send QR code email
@@ -861,7 +936,9 @@ export async function sendQRCodesToAllParticipants(eventId: string, batchSize: n
             startDate: event.startDate || event.date,
             endDate: event.endDate || event.date,
             location: event.location,
-            description: event.description
+            description: event.description,
+            isActive: event.isActive !== undefined ? event.isActive : (new Date() >= new Date(event.startDate || event.date) && new Date() <= new Date(event.endDate || event.date)),
+            isInternal: event.isInternal ?? false,
           };
 
           await sendAttendanceQREmail({
@@ -944,7 +1021,9 @@ export async function sendFollowUpToParticipant(participantId: string, eventId: 
       startDate: event.startDate || event.date,
       endDate: event.endDate || event.date,
       location: event.location,
-      description: event.description
+      description: event.description,
+      isActive: event.isActive !== undefined ? event.isActive : (new Date() >= new Date(event.startDate || event.date) && new Date() <= new Date(event.endDate || event.date)),
+      isInternal: event.isInternal ?? false,
     };
 
     // Send follow-up email
@@ -1009,7 +1088,9 @@ export async function sendFollowUpToAllParticipants(eventId: string, message?: s
             startDate: event.startDate || event.date,
             endDate: event.endDate || event.date,
             location: event.location,
-            description: event.description
+            description: event.description,
+            isActive: event.isActive !== undefined ? event.isActive : (new Date() >= new Date(event.startDate || event.date) && new Date() <= new Date(event.endDate || event.date)),
+            isInternal: event.isInternal ?? false,
           };
 
           await sendFollowUpEmail({

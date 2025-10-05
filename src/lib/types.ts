@@ -7,6 +7,8 @@ export interface Event {
   endDate: string;
   location: string;
   description: string;
+  isActive: boolean;
+  isInternal: boolean;
 }
 
 export type NewEvent = Omit<Event, "id">;

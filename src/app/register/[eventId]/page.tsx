@@ -68,7 +68,7 @@ export default async function RegisterPage({ params }: { params: Promise<{ event
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <RegistrationForm eventId={event.id} />
+                <RegistrationForm eventId={event.id} event={event} />
             </CardContent>
         </Card>
       </div>

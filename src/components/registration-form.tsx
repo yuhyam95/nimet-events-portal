@@ -17,17 +17,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { addParticipant } from "@/lib/actions";
+import type { Event } from "@/lib/types";
 
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  organization: z.string().min(2, {
-    message: "Organization must be at least 2 characters.",
-  }),
-  designation: z.string().min(2, {
-    message: "Designation must be at least 2 characters.",
-  }),
+  organization: z.string().optional(),
+  designation: z.string().optional(),
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -36,7 +33,7 @@ const formSchema = z.object({
   }),
 });
 
-export function RegistrationForm({ eventId }: { eventId: string }) {
+export function RegistrationForm({ eventId, event }: { eventId: string; event?: Event }) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -60,13 +57,9 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
     const result = await addParticipant({ ...normalizedValues, eventId });
     
     if (result.success) {
-      toast({
-        title: "Registration Successful!",
-        description: "We've received your registration. Check your email for confirmation with event details and QR code!",
-      });
-      // In a real app, you would redirect or clear the form.
-      // For this demo, we'll redirect back home after a short delay.
-      setTimeout(() => router.push('/'), 3000);
+      // Redirect to success page with event and participant data
+      const successUrl = `/register/success?eventId=${eventId}&participantId=${result.participantId || 'new'}`;
+      router.push(successUrl);
     } else {
       const errorMessage = result.error || "Could not complete your registration. Please try again.";
       
@@ -148,33 +141,37 @@ export function RegistrationForm({ eventId }: { eventId: string }) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="organization"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Organization</FormLabel>
-              <FormControl>
-                <Input placeholder="Name of your organization" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!event?.isInternal && (
+          <>
+            <FormField
+              control={form.control}
+              name="organization"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Organization</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Name of your organization" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="designation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Designation</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Manager, Director, Officer" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="designation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Position</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Manager, Director, Officer" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
         
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Registering..." : "Register"}
