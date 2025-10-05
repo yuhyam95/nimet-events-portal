@@ -9,8 +9,8 @@ import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from 
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  organization: z.string().min(2, { message: "Organization must be at least 2 characters." }),
-  designation: z.string().min(2, { message: "Position must be at least 2 characters." }),
+  organization: z.string().optional(),
+  designation: z.string().optional(),
   contact: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(11, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
@@ -72,7 +72,7 @@ async function getDb() {
 export async function getEvents(): Promise<Event[]> {
   try {
     const db = await getDb();
-    const events = await db.collection("events").find({}).sort({ startDate: 1 }).toArray();
+    const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
     
     return events.map((event) => {
@@ -405,7 +405,7 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
         const mappedParticipant: Participant = {
           id: result.insertedId.toString(),
           name: participantData.name,
-          organization: participantData.organization,
+          organization: participantData.organization || "",
           designation: participantData.designation || "",
           contact: participantData.contact,
           phone: participantData.phone || "",
