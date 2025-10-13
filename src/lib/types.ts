@@ -11,6 +11,7 @@ export interface Event {
   isInternal: boolean;
   department?: string;
   position?: string;
+  assignedStaff?: string[]; // Array of user IDs
 }
 
 export type NewEvent = Omit<Event, "id">;

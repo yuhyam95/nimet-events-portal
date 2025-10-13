@@ -6,6 +6,7 @@ import { MongoClient, ObjectId } from "mongodb";
 import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
 import bcrypt from "bcryptjs";
 import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from "./email-service";
+import { generateToken, verifyToken, type JWTPayload } from "./jwt";
 
 const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -29,6 +30,7 @@ const EventSchema = z.object({
     isInternal: z.boolean().optional(),
     department: z.string().optional(),
     position: z.string().optional(),
+    assignedStaff: z.array(z.string()).optional(),
 });
 
 const UserSchema = z.object({
@@ -102,6 +104,7 @@ export async function getEvents(): Promise<Event[]> {
         isInternal: event.isInternal ?? false,
         department: event.department,
         position: event.position,
+        assignedStaff: event.assignedStaff || [],
       };
     }); // Return all events (both active and inactive)
   } catch (error) {
@@ -138,6 +141,7 @@ export async function getActiveEvents(): Promise<Event[]> {
         isInternal: event.isInternal ?? false,
         department: event.department,
         position: event.position,
+        assignedStaff: event.assignedStaff || [],
       };
     }).filter(event => event.isActive); // Only return active events
   } catch (error) {
@@ -716,40 +720,224 @@ export async function changePassword(id: string, data: unknown): Promise<void> {
   }
 }
 
-export async function authenticateUser(email: string, password: string): Promise<User | null> {
+export async function authenticateUser(email: string, password: string): Promise<{ user: User; token: string } | null> {
   try {
     const db = await getDb();
-    const user = await db.collection("users").findOne({ email });
     
+    // Find user by email
+    const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return null;
     }
     
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    
     if (!isPasswordValid) {
       return null;
     }
     
-    const userData = {
+    // Convert to User type
+    const userData: User = {
       id: user._id.toString(),
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
     };
     
-    return userData;
+    // Generate JWT token
+    const token = generateToken(userData);
+    
+    return { user: userData, token };
   } catch (error) {
-    console.error("Authentication error:", error);
+    console.error("Authentication failed:", error);
     return null;
   }
 }
 
+export async function verifyUserToken(token: string): Promise<User | null> {
+  try {
+    const payload = verifyToken(token);
+    if (!payload) {
+      return null;
+    }
+    
+    // Get fresh user data from database
+    const user = await getUserById(payload.userId);
+    return user;
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return null;
+  }
+}
+
+export async function assignStaffToEvent(eventId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(eventId) || !ObjectId.isValid(userId)) {
+    return { success: false, error: "Invalid event ID or user ID" };
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check if event exists
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event) {
+      return { success: false, error: "Event not found" };
+    }
+    
+    // Check if user exists
+    const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+    
+    // Get current assigned staff
+    const currentStaff = event.assignedStaff || [];
+    
+    // Check if user is already assigned
+    if (currentStaff.includes(userId)) {
+      return { success: false, error: "User is already assigned to this event" };
+    }
+    
+    // Add user to assigned staff
+    const updatedStaff = [...currentStaff, userId];
+    
+    const result = await db.collection("events").updateOne(
+      { _id: new ObjectId(eventId) },
+      { 
+        $set: {
+          assignedStaff: updatedStaff,
+          updatedAt: new Date().toISOString(),
+        }
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Failed to update event" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to assign staff to event:", error);
+    return { success: false, error: "Database operation failed" };
+  }
+}
+
+export async function unassignStaffFromEvent(eventId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(eventId) || !ObjectId.isValid(userId)) {
+    return { success: false, error: "Invalid event ID or user ID" };
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Check if event exists
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event) {
+      return { success: false, error: "Event not found" };
+    }
+    
+    // Get current assigned staff
+    const currentStaff = event.assignedStaff || [];
+    
+    // Check if user is assigned
+    if (!currentStaff.includes(userId)) {
+      return { success: false, error: "User is not assigned to this event" };
+    }
+    
+    // Remove user from assigned staff
+    const updatedStaff = currentStaff.filter((id: string) => id !== userId);
+    
+    const result = await db.collection("events").updateOne(
+      { _id: new ObjectId(eventId) },
+      { 
+        $set: {
+          assignedStaff: updatedStaff,
+          updatedAt: new Date().toISOString(),
+        }
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      return { success: false, error: "Failed to update event" };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to unassign staff from event:", error);
+    return { success: false, error: "Database operation failed" };
+  }
+}
+
+export async function getEventAssignedStaff(eventId: string): Promise<User[]> {
+  if (!ObjectId.isValid(eventId)) {
+    return [];
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Get event with assigned staff
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event || !event.assignedStaff || event.assignedStaff.length === 0) {
+      return [];
+    }
+    
+    // Get user details for assigned staff
+    const staffIds = event.assignedStaff.map((id: string) => new ObjectId(id));
+    const staff = await db.collection("users").find({ _id: { $in: staffIds } }).toArray();
+    
+    return staff.map(user => ({
+      id: user._id.toString(),
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
+    }));
+  } catch (error) {
+    console.error("Failed to get event assigned staff:", error);
+    return [];
+  }
+}
+
+export async function canUserTakeAttendance(eventId: string, userId: string): Promise<boolean> {
+  if (!ObjectId.isValid(eventId) || !ObjectId.isValid(userId)) {
+    return false;
+  }
+
+  try {
+    const db = await getDb();
+    
+    // Get user to check if they're admin
+    const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return false;
+    }
+    
+    // Admins can always take attendance
+    if (user.role === 'admin') {
+      return true;
+    }
+    
+    // Check if user is assigned to the event
+    const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    if (!event) {
+      return false;
+    }
+    
+    const assignedStaff = event.assignedStaff || [];
+    return assignedStaff.includes(userId);
+  } catch (error) {
+    console.error("Failed to check attendance permission:", error);
+    return false;
+  }
+}
+
+
 // Attendance functions
-export async function markAttendance(participantId: string, eventId: string, attendanceDate?: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
+export async function markAttendance(participantId: string, eventId: string, attendanceDate?: string, userId?: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
   console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId, 'attendanceDate:', attendanceDate);
   console.log('participantId isValid:', ObjectId.isValid(participantId));
   console.log('eventId isValid:', ObjectId.isValid(eventId));
@@ -757,6 +945,14 @@ export async function markAttendance(participantId: string, eventId: string, att
   if (!ObjectId.isValid(participantId) || !ObjectId.isValid(eventId)) {
     console.log('Invalid IDs - participantId:', participantId, 'eventId:', eventId);
     return { success: false, error: "Invalid participant or event ID" };
+  }
+
+  // Check if user has permission to take attendance (if userId is provided)
+  if (userId) {
+    const hasPermission = await canUserTakeAttendance(eventId, userId);
+    if (!hasPermission) {
+      return { success: false, error: "You are not authorized to take attendance for this event" };
+    }
   }
 
   try {

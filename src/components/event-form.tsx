@@ -79,9 +79,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         endDate: formatDateToYYYYMMDD(values.endDate), // Convert end date to string format
         description: values.theme || "", // Map theme to description for backend compatibility
         isActive: values.isActive ?? true, // Include active status
-        isInternal: values.isInternal ?? false, // Include internal status
-        department: values.department || "", // Include department
-        position: values.position || "", // Include position
+      isInternal: values.isInternal ?? false, // Include internal status
+      department: values.department || "", // Include department
+      position: values.position || "", // Include position
+      assignedStaff: event?.assignedStaff || [], // Include assigned staff
       };
       
       if (event?.id) {
@@ -299,7 +300,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
           )}
         />
         
-        {form.watch("isInternal") && (
+        {/* {form.watch("isInternal") && (
           <>
             <FormField
               control={form.control}
@@ -334,7 +335,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
               )}
             />
           </>
-        )}
+        )} */}
         <Button type="submit" className="w-full mt-6" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting 
               ? (event?.id ? "Updating..." : "Creating...") 
