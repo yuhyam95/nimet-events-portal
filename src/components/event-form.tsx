@@ -35,6 +35,8 @@ const formSchema = z.object({
   theme: z.string().optional(),
   isActive: z.boolean().optional(),
   isInternal: z.boolean().optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
 });
 
 interface EventFormProps {
@@ -56,6 +58,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
       theme: event?.description || "",
       isActive: event?.isActive ?? true, // Default to true for new events
       isInternal: event?.isInternal ?? false, // Default to external for new events
+      department: event?.department || "",
+      position: event?.position || "",
     },
   });
 
@@ -76,6 +80,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         description: values.theme || "", // Map theme to description for backend compatibility
         isActive: values.isActive ?? true, // Include active status
         isInternal: values.isInternal ?? false, // Include internal status
+        department: values.department || "", // Include department
+        position: values.position || "", // Include position
       };
       
       if (event?.id) {
@@ -292,6 +298,43 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
+        
+        {form.watch("isInternal") && (
+          <>
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department/Unit</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Information Technology, Human Resources" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Specify the department or unit organizing this internal event.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="position"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Position/Level</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Senior Level, Management, All Staff" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Specify the position level or target audience for this internal event.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
         <Button type="submit" className="w-full mt-6" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting 
               ? (event?.id ? "Updating..." : "Creating...") 

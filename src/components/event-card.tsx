@@ -57,6 +57,18 @@ export function EventCard({ event }: EventCardProps) {
             <MapPin className="h-4 w-4" />
             <span>{event.location}</span>
           </div>
+          {event.isInternal && event.department && (
+            <div className="flex items-center gap-2 text-muted-foreground mt-1">
+              <span className="text-xs font-medium">Department:</span>
+              <span className="text-xs">{event.department}</span>
+            </div>
+          )}
+          {event.isInternal && event.position && (
+            <div className="flex items-center gap-2 text-muted-foreground mt-1">
+              <span className="text-xs font-medium">Position:</span>
+              <span className="text-xs">{event.position}</span>
+            </div>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">

@@ -129,10 +129,12 @@ export function EventList() {
     let sortableItems = [...events];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const aValue = a[sortConfig.key] ?? "";
+        const bValue = b[sortConfig.key] ?? "";
+        if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === "ascending" ? 1 : -1;
         }
         return 0;
@@ -212,6 +214,28 @@ export function EventList() {
               {event.location}
             </p>
             <p className="text-sm">
+              <span className="font-semibold">Type: </span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                event.isInternal 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {event.isInternal ? 'Internal' : 'External'}
+              </span>
+            </p>
+            {event.isInternal && event.department && (
+              <p className="text-sm">
+                <span className="font-semibold">Department: </span>
+                {event.department}
+              </p>
+            )}
+            {event.isInternal && event.position && (
+              <p className="text-sm">
+                <span className="font-semibold">Position: </span>
+                {event.position}
+              </p>
+            )}
+            <p className="text-sm">
               <span className="font-semibold">Status: </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 event.isActive 
@@ -277,6 +301,7 @@ export function EventList() {
               <SortableHeader sortKey="startDate">Start Date</SortableHeader>
               <SortableHeader sortKey="endDate">End Date</SortableHeader>
               <SortableHeader sortKey="location">Location</SortableHeader>
+              <SortableHeader sortKey="isInternal">Type</SortableHeader>
               <SortableHeader sortKey="isActive">Status</SortableHeader>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -289,6 +314,23 @@ export function EventList() {
                   <TableCell>{formatEventDate(event.startDate)}</TableCell>
                   <TableCell>{formatEventDate(event.endDate)}</TableCell>
                   <TableCell>{event.location}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        event.isInternal 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {event.isInternal ? 'Internal' : 'External'}
+                      </span>
+                      {event.isInternal && event.department && (
+                        <div className="text-xs text-muted-foreground">
+                          <div className="font-medium">Dept: {event.department}</div>
+                          {event.position && <div>Pos: {event.position}</div>}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       event.isActive 
@@ -333,7 +375,7 @@ export function EventList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>

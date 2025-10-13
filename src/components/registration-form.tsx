@@ -25,6 +25,8 @@ const formSchema = z.object({
   }),
   organization: z.string().optional(),
   designation: z.string().optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
@@ -43,6 +45,8 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
       name: "",
       organization: "",
       designation: "",
+      department: "",
+      position: "",
       contact: "",
       phone: "",
     },
@@ -165,6 +169,38 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
                   <FormLabel>Position</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g. Manager, Director, Officer" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        {event?.isInternal && (
+          <>
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department/Unit</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. ICT, Human Resources" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="position"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Position</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. General Manager, Director" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

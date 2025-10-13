@@ -9,6 +9,8 @@ export interface Event {
   description: string;
   isActive: boolean;
   isInternal: boolean;
+  department?: string;
+  position?: string;
 }
 
 export type NewEvent = Omit<Event, "id">;
@@ -19,6 +21,8 @@ export interface Participant {
   name: string;
   organization: string;
   designation: string;
+  department?: string;
+  position?: string;
   contact: string;
   phone: string;
   eventId: string;

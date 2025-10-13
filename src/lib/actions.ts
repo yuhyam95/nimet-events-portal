@@ -11,6 +11,8 @@ const ParticipantSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   organization: z.string().optional(),
   designation: z.string().optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
   contact: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(11, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
@@ -25,6 +27,8 @@ const EventSchema = z.object({
     description: z.string().optional(),
     isActive: z.boolean().optional(),
     isInternal: z.boolean().optional(),
+    department: z.string().optional(),
+    position: z.string().optional(),
 });
 
 const UserSchema = z.object({
@@ -96,6 +100,8 @@ export async function getEvents(): Promise<Event[]> {
         description: event.description,
         isActive: isActive,
         isInternal: event.isInternal ?? false,
+        department: event.department,
+        position: event.position,
       };
     }); // Return all events (both active and inactive)
   } catch (error) {
@@ -130,6 +136,8 @@ export async function getActiveEvents(): Promise<Event[]> {
         description: event.description,
         isActive: isActive,
         isInternal: event.isInternal ?? false,
+        department: event.department,
+        position: event.position,
       };
     }).filter(event => event.isActive); // Only return active events
   } catch (error) {
@@ -167,6 +175,8 @@ export async function getEventById(id: string): Promise<Event | null> {
       description: event.description,
       isActive: isActive,
       isInternal: event.isInternal ?? false,
+      department: event.department,
+      position: event.position,
     };
   } catch (error) {
     console.error(`Error fetching event by id ${id}:`, error);
@@ -200,6 +210,8 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       description: event.description,
       isActive: isActive,
       isInternal: event.isInternal ?? false,
+      department: event.department,
+      position: event.position,
     };
   } catch (error) {
     console.error(`Error fetching event by slug ${slug}:`, error);
@@ -319,6 +331,8 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
       name: p.name,
       organization: p.organization,
       designation: p.designation || "", // Handle missing designation field
+      department: p.department,
+      position: p.position,
       contact: p.contact,
       phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
@@ -354,6 +368,8 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       name: p.name,
       organization: p.organization,
       designation: p.designation || "", // Handle missing designation field
+      department: p.department,
+      position: p.position,
       contact: p.contact,
       phone: p.phone || p.interests, // Handle both old and new field names
       eventId: p.eventId.toString(),
