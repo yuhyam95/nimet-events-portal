@@ -74,9 +74,11 @@ export default function ProfilePage() {
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Role</label>
-              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                {user.role}
-              </Badge>
+              <div className="mt-1">
+                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                  {user.role}
+                </Badge>
+              </div>
             </div>
             
             <Separator />

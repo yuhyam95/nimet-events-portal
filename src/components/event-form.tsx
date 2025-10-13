@@ -255,7 +255,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5 flex-1">
                 <div className="flex items-center gap-3">
-                  <FormLabel className="text-base">Event Status</FormLabel>
+                  <FormLabel className="text-base">Event Status - Active?</FormLabel>
                   <FormControl>
                     <Switch
                       checked={field.value}
@@ -277,7 +277,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5 flex-1">
                 <div className="flex items-center gap-3">
-                  <FormLabel className="text-base">Event Type</FormLabel>
+                  <FormLabel className="text-base">Event Type - Internal?</FormLabel>
                   <FormControl>
                     <Switch
                       checked={field.value}
