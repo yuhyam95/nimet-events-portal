@@ -1,9 +1,9 @@
 import { EventCard } from "@/components/event-card";
-import { getEvents } from "@/lib/actions";
+import { getActiveEvents } from "@/lib/actions";
 import type { Event } from "@/lib/types";
 
 export default async function Home() {
-  const events = await getEvents();
+  const events = await getActiveEvents();
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">

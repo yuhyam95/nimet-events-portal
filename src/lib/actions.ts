@@ -104,6 +104,40 @@ export async function getEvents(): Promise<Event[]> {
   }
 }
 
+export async function getActiveEvents(): Promise<Event[]> {
+  try {
+    const db = await getDb();
+    const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
+    const now = new Date();
+    
+    return events.map((event) => {
+      const startDate = new Date(event.startDate || event.date);
+      const endDate = new Date(event.endDate || event.date);
+      
+      // Calculate if event should be active based on dates
+      const shouldBeActive = now >= startDate && now <= endDate;
+      
+      // Use stored isActive if it exists, otherwise calculate based on dates
+      const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+      
+      return {
+        id: event._id.toString(),
+        name: event.name,
+        slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+        startDate: event.startDate || event.date, // Handle both old and new field names
+        endDate: event.endDate || event.date, // Handle both old and new field names
+        location: event.location,
+        description: event.description,
+        isActive: isActive,
+        isInternal: event.isInternal ?? false,
+      };
+    }).filter(event => event.isActive); // Only return active events
+  } catch (error) {
+    console.error("Error fetching active events:", error);
+    return [];
+  }
+}
+
 export async function getEventById(id: string): Promise<Event | null> {
   if (!ObjectId.isValid(id)) {
     return null;
