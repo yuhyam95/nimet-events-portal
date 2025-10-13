@@ -96,7 +96,7 @@ export async function getEvents(): Promise<Event[]> {
         isActive: isActive,
         isInternal: event.isInternal ?? false,
       };
-    });
+    }); // Return all events (both active and inactive)
   } catch (error) {
     console.error("Error fetching events:", error);
     return [];
