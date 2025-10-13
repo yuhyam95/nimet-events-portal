@@ -28,27 +28,38 @@ import { createUser, updateUser } from "@/lib/actions";
 const UserSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
+  password: z.string().optional(),
   confirmPassword: z.string().optional(),
   role: z.enum(['admin', 'user'], { message: "Role must be either 'admin' or 'user'." }),
 }).refine((data) => {
-  // For new users, password is required
-  if (!data.password) {
+  // If password is provided, it must be at least 6 characters
+  if (data.password && data.password.length > 0 && data.password.length < 6) {
     return false;
   }
   return true;
 }, {
-  message: "Password is required for new users",
+  message: "Password must be at least 6 characters",
   path: ["password"],
 }).refine((data) => {
-  // For new users, confirm password must match
-  if (data.password && data.confirmPassword !== data.password) {
+  // If password is provided, confirm password must match
+  if (data.password && data.password.length > 0 && data.confirmPassword !== data.password) {
     return false;
   }
   return true;
 }, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
+});
+
+const CreateUserSchema = UserSchema.refine((data) => {
+  // For new users, password is required
+  if (!data.password || data.password.length === 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Password is required for new users",
+  path: ["password"],
 });
 
 type UserFormData = z.infer<typeof UserSchema>;
@@ -63,7 +74,7 @@ export function UserForm({ onSuccess, user }: UserFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<UserFormData>({
-    resolver: zodResolver(UserSchema),
+    resolver: zodResolver(user ? UserSchema : CreateUserSchema),
     defaultValues: {
       fullName: user?.fullName || "",
       email: user?.email || "",
@@ -78,11 +89,17 @@ export function UserForm({ onSuccess, user }: UserFormProps) {
     try {
       if (user) {
         // Update existing user
-        const updateData = {
+        const updateData: any = {
           fullName: data.fullName,
           email: data.email,
           role: data.role,
         };
+        
+        // Only include password if provided
+        if (data.password && data.password.trim() !== "") {
+          updateData.password = data.password;
+        }
+        
         await updateUser(user.id, updateData);
         toast({
           title: "User Updated!",
@@ -172,25 +189,25 @@ export function UserForm({ onSuccess, user }: UserFormProps) {
           )}
         />
 
-        {!user && (
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="password" 
-                    placeholder="Confirm password" 
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Confirm Password {user && "(only if changing password)"}
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder={user ? "Confirm new password (optional)" : "Confirm password"} 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

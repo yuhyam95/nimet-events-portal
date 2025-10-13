@@ -38,6 +38,7 @@ const UpdateUserSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   role: z.enum(['admin', 'user'], { message: "Role must be either 'admin' or 'user'." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
 });
 
 const ChangePasswordSchema = z.object({
@@ -449,8 +450,8 @@ export async function getUsers(): Promise<User[]> {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
     }));
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -471,8 +472,8 @@ export async function getUserById(id: string): Promise<User | null> {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
     };
   } catch (error) {
     console.error(`Error fetching user by id ${id}:`, error);
@@ -490,8 +491,8 @@ export async function getUserByEmail(email: string): Promise<User | null> {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
     };
   } catch (error) {
     console.error(`Error fetching user by email ${email}:`, error);
@@ -564,13 +565,22 @@ export async function updateUser(id: string, data: unknown): Promise<User> {
     }
     
     const now = new Date().toISOString();
+    const updateData: any = {
+      fullName: validation.data.fullName,
+      email: validation.data.email,
+      role: validation.data.role,
+      updatedAt: now,
+    };
+    
+    // Hash password if provided
+    if (validation.data.password) {
+      updateData.password = await bcrypt.hash(validation.data.password, 12);
+    }
+    
     const result = await db.collection("users").updateOne(
       { _id: new ObjectId(id) },
       { 
-        $set: {
-          ...validation.data,
-          updatedAt: now,
-        }
+        $set: updateData
       }
     );
     
