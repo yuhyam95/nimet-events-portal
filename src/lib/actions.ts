@@ -2,7 +2,8 @@
 "use server";
 
 import { z } from "zod";
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
+import { getDb } from "./mongodb";
 import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
 import bcrypt from "bcryptjs";
 import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from "./email-service";
@@ -53,28 +54,7 @@ const ChangePasswordSchema = z.object({
 });
 
 
-let client: MongoClient | null = null;
-const MONGODB_URI = process.env.MONGODB_URI;
-
-async function getDb() {
-  if (!MONGODB_URI) {
-    throw new Error("MONGODB_URI is not set in the environment variables. Please add it to your .env file.");
-  }
-
-  if (!client) {
-    try {
-      client = new MongoClient(MONGODB_URI);
-      await client.connect();
-    } catch (error: any) {
-      if (error.name === 'MongoServerError' && error.codeName === 'AtlasError') {
-         throw new Error("MongoDB authentication failed. Please check your username and password in the MONGODB_URI.");
-      }
-      console.error("Failed to connect to MongoDB", error);
-      throw new Error("Failed to connect to the database.");
-    }
-  }
-  return client.db();
-}
+// getDb is now imported from ./mongodb and provides a singleton connection
 
 export async function getEvents(): Promise<Event[]> {
   try {
