@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addEvent, updateEvent } from "@/lib/actions";
 import type { Event } from "@/lib/types";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -172,9 +172,11 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date()
-                    }
+                    disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      const cmp = startOfDay(date);
+                      return cmp < today;
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -215,7 +217,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                     onSelect={field.onChange}
                     disabled={(date) => {
                       const startDate = form.getValues("startDate");
-                      return date < (startDate || new Date());
+                      const today = startOfDay(new Date());
+                      const minDate = startDate ? startOfDay(startDate) : today;
+                      const cmp = startOfDay(date);
+                      return cmp < minDate;
                     }}
                     initialFocus
                   />
