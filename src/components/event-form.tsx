@@ -52,8 +52,8 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     defaultValues: {
       name: event?.name || "",
       slug: event?.slug || "",
-      startDate: event?.startDate ? new Date(event.startDate + 'T00:00:00') : undefined,
-      endDate: event?.endDate ? new Date(event.endDate + 'T00:00:00') : undefined,
+      startDate: event?.startDate ? new Date(event.startDate + 'T00:00:00') : new Date(),
+      endDate: event?.endDate ? new Date(event.endDate + 'T00:00:00') : new Date(),
       location: event?.location || "",
       theme: event?.description || "",
       isActive: event?.isActive ?? true, // Default to true for new events
