@@ -1010,6 +1010,9 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
 
   try {
     const db = await getDb();
+    // Fetch event to determine if it is internal
+    const eventDoc = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+    const isInternalEvent = !!eventDoc?.isInternal;
     
     // Build query filter
     const filter: any = { eventId: new ObjectId(eventId) };
@@ -1034,7 +1037,9 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
       checkedInAt: a.checkedInAt,
       attendanceDate: a.attendanceDate || new Date(a.checkedInAt).toISOString().split('T')[0],
       participantName: participantMap.get(a.participantId.toString())?.name || "Unknown",
-      participantOrganization: participantMap.get(a.participantId.toString())?.organization || "Unknown"
+      participantOrganization: isInternalEvent
+        ? "NiMet"
+        : (participantMap.get(a.participantId.toString())?.organization || "Unknown")
     }));
   } catch (error) {
     console.error("Error fetching attendance:", error);
