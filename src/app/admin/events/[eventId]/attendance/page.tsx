@@ -70,7 +70,11 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
           <CardContent>
             <div className="text-2xl font-bold text-green-700">{stats.checkedIn}</div>
             <p className="text-xs text-green-600">
-              {stats.totalParticipants > 0 ? Math.round((stats.checkedIn / stats.totalParticipants) * 100) : 0}% attendance rate
+              {(() => {
+                const pct = stats.totalParticipants > 0 ? Math.round((stats.checkedIn / stats.totalParticipants) * 100) : 0;
+                const clamped = Math.min(100, Math.max(0, pct));
+                return `${clamped}% attendance rate`;
+              })()}
             </p>
           </CardContent>
         </Card>
@@ -83,7 +87,11 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
           <CardContent>
             <div className="text-2xl font-bold text-red-700">{stats.notCheckedIn}</div>
             <p className="text-xs text-red-600">
-              {stats.totalParticipants > 0 ? Math.round((stats.notCheckedIn / stats.totalParticipants) * 100) : 0}% absent
+              {(() => {
+                const pct = stats.totalParticipants > 0 ? Math.round((stats.notCheckedIn / stats.totalParticipants) * 100) : 0;
+                const clamped = Math.min(100, Math.max(0, pct));
+                return `${clamped}% absent`;
+              })()}
             </p>
           </CardContent>
         </Card>

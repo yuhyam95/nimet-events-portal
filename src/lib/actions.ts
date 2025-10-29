@@ -1066,13 +1066,14 @@ export async function getAttendanceStats(eventId: string, attendanceDate?: strin
       attendanceFilter.attendanceDate = attendanceDate;
     }
     
-    // Get checked in count for the specific date or all time
-    const checkedIn = await db.collection("attendance").countDocuments(attendanceFilter);
+    // Get checked-in DISTINCT participants for the specific date or all time
+    const distinctIds = await db.collection("attendance").distinct("participantId", attendanceFilter);
+    const checkedIn = Array.isArray(distinctIds) ? distinctIds.length : 0;
     
     return {
       totalParticipants,
       checkedIn,
-      notCheckedIn: totalParticipants - checkedIn
+      notCheckedIn: Math.max(0, totalParticipants - checkedIn)
     };
   } catch (error) {
     console.error("Error fetching attendance stats:", error);
