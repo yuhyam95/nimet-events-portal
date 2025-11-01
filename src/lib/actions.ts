@@ -56,8 +56,55 @@ const ChangePasswordSchema = z.object({
 
 // getDb is now imported from ./mongodb and provides a singleton connection
 
+/**
+ * Automatically deactivate events where the end date has passed
+ * This function updates the database to mark expired events as inactive
+ */
+export async function deactivateExpiredEvents(): Promise<void> {
+  try {
+    const db = await getDb();
+    const now = new Date();
+    
+    // Find events that are currently active (or undefined) and have passed their end date
+    const events = await db.collection("events").find({
+      $or: [
+        { isActive: { $exists: false } }, // isActive field doesn't exist
+        { isActive: true }
+      ]
+    }).toArray();
+    
+    let deactivatedCount = 0;
+    
+    for (const event of events) {
+      const endDate = new Date(event.endDate || event.date);
+      
+      // If end date has passed (using end of day for endDate)
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      if (now > endOfDay) {
+        await db.collection("events").updateOne(
+          { _id: event._id },
+          { $set: { isActive: false } }
+        );
+        deactivatedCount++;
+      }
+    }
+    
+    if (deactivatedCount > 0) {
+      console.log(`Automatically deactivated ${deactivatedCount} expired event(s)`);
+    }
+  } catch (error) {
+    console.error("Error deactivating expired events:", error);
+    // Don't throw - this is a background operation
+  }
+}
+
 export async function getEvents(): Promise<Event[]> {
   try {
+    // Automatically deactivate expired events
+    await deactivateExpiredEvents();
+    
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
@@ -95,6 +142,9 @@ export async function getEvents(): Promise<Event[]> {
 
 export async function getActiveEvents(): Promise<Event[]> {
   try {
+    // Automatically deactivate expired events
+    await deactivateExpiredEvents();
+    
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
