@@ -1,0 +1,85 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+            node-version: '20'
+
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+
+      - name: Rsync project to VPS
+        run: |
+          RSYNC_EXCLUDES=(
+            ".git/"
+            "node_modules/"
+            ".next/"
+            "npm-debug.log"
+            "**/.DS_Store"
+            ".github/"
+          )
+          IFS=$'\n'; EXCLUDES=("${RSYNC_EXCLUDES[@]/#/--exclude=}")
+          rsync -az --delete ${EXCLUDES[*]} ./ $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Write .env on server (optional)
+        if: ${{ secrets.ENV_FILE != '' }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_PATH && cat > $DEPLOY_PATH/.env << 'EOF'
+          $ENV_FILE
+          EOF"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+
+      - name: Install, build, and restart app on VPS
+        run: |
+          ssh $SSH_USER@$SSH_HOST "\
+            set -euo pipefail; \
+            cd $DEPLOY_PATH; \
+            export NODE_ENV=production; \
+            command -v npm >/dev/null 2>&1 || { echo 'npm not found on server'; exit 1; }; \
+            if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi; \
+            npm run build; \
+            if command -v pm2 >/dev/null 2>&1; then \
+              pm2 describe nimet-events-portal >/dev/null 2>&1 && pm2 reload nimet-events-portal || pm2 start npm --name nimet-events-portal -- start; \
+              pm2 save; \
+            else \
+              echo 'PM2 not installed. Starting app in background with nohup...'; \
+              nohup npm run start > app.out 2>&1 < /dev/null & echo $! > app.pid; \
+            fi"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+
