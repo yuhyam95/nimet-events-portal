@@ -49,7 +49,7 @@ type SortKey = keyof Participant;
 export function ParticipantList({
   initialParticipants,
 }: {
-  initialParticipants: (Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string })[];
+  initialParticipants: (Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean })[];
 }) {
   const eventName = initialParticipants.length > 0 ? initialParticipants[0].eventName : "Event Participants";
   const [participants, setParticipants] = React.useState(initialParticipants);
@@ -61,12 +61,12 @@ export function ParticipantList({
   const [sortOrder, setSortOrder] = React.useState<"ascending" | "descending">("ascending");
   
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [selectedParticipant, setSelectedParticipant] = React.useState<Participant | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = React.useState<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) | null>(null);
   const [generatedFlyer, setGeneratedFlyer] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   
   const [isQRDialogOpen, setIsQRDialogOpen] = React.useState(false);
-  const [selectedQRParticipant, setSelectedQRParticipant] = React.useState<Participant | null>(null);
+  const [selectedQRParticipant, setSelectedQRParticipant] = React.useState<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) | null>(null);
   const [generatedQRCode, setGeneratedQRCode] = React.useState<string | null>(null);
   const [isQRLoading, setIsQRLoading] = React.useState(false);
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
@@ -128,8 +128,8 @@ export function ParticipantList({
       ...sortedAndFilteredParticipants.map((participant, index) => [
         index + 1,
         `"${participant.name}"`,
-        `"${participant.organization}"`,
-        `"${participant.designation}"`,
+        `"${participant.isInternal ? "NiMet" : (participant.organization || "-")}"`,
+        `"${participant.designation || "-"}"`,
         `"${participant.contact}"`,
         `"${participant.phone}"`
       ].join(","))
@@ -151,7 +151,7 @@ export function ParticipantList({
     });
   };
 
-  const handleGenerateQRCode = async (participant: Participant) => {
+  const handleGenerateQRCode = async (participant: Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) => {
     setSelectedQRParticipant(participant);
     setIsQRDialogOpen(true);
     setIsQRLoading(true);
@@ -519,7 +519,7 @@ export function ParticipantList({
     );
   }, [participants, searchQuery, sortConfig]);
 
-  const handleGenerateTag = async (participant: Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string }) => {
+  const handleGenerateTag = async (participant: Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) => {
     setSelectedParticipant(participant);
     setIsDialogOpen(true);
     setIsLoading(true);
@@ -609,11 +609,11 @@ export function ParticipantList({
           <CardContent className="space-y-2">
             <p className="text-sm">
               <span className="font-semibold">Organization: </span>
-              {participant.organization}
+              {participant.isInternal ? "NiMet" : (participant.organization || "-")}
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Position: </span>
-              {participant.designation}
+              {participant.designation || "-"}
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Contact: </span>
@@ -695,8 +695,8 @@ export function ParticipantList({
                   </TableCell>
                   <TableCell className="font-medium">{index + 1}</TableCell>
                   <TableCell className="font-medium">{participant.name}</TableCell>
-                  <TableCell>{participant.organization}</TableCell>
-                  <TableCell>{participant.designation}</TableCell>
+                  <TableCell>{participant.isInternal ? "NiMet" : (participant.organization || "-")}</TableCell>
+                  <TableCell>{participant.designation || "-"}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
@@ -929,7 +929,7 @@ export function ParticipantList({
                         </div>
                         <p className="text-sm text-muted-foreground mt-2 text-center">
                           Participant: {selectedQRParticipant?.name}<br/>
-                          Organization: {selectedQRParticipant?.organization}
+                          Organization: {selectedQRParticipant?.isInternal ? "NiMet" : (selectedQRParticipant?.organization || "-")}
                         </p>
                     </div>
                 </>

@@ -79,10 +79,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         endDate: formatDateToYYYYMMDD(values.endDate), // Convert end date to string format
         description: values.theme || "", // Map theme to description for backend compatibility
         isActive: values.isActive ?? true, // Include active status
-      isInternal: values.isInternal ?? false, // Include internal status
-      department: values.department || "", // Include department
-      position: values.position || "", // Include position
-      assignedStaff: event?.assignedStaff || [], // Include assigned staff
+        isInternal: event?.id ? event.isInternal : (values.isInternal ?? false), // Preserve original value when editing, use form value when creating
+        department: values.department || "", // Include department
+        position: values.position || "", // Include position
+        assignedStaff: event?.assignedStaff || [], // Include assigned staff
       };
       
       if (event?.id) {
@@ -282,28 +282,30 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="isInternal"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5 flex-1">
-                <div className="flex items-center gap-3">
-                  <FormLabel className="text-base">Event Type - Internal?</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
+        {!event?.id && (
+          <FormField
+            control={form.control}
+            name="isInternal"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5 flex-1">
+                  <div className="flex items-center gap-3">
+                    <FormLabel className="text-base">Event Type - Internal?</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormDescription>
+                    Toggle for NiMet internal or external event. Internal events hide organization/designation fields. This cannot be changed after creation.
+                  </FormDescription>
                 </div>
-                <FormDescription>
-                  Toggle for NiMet internal or external event. Internal events hide organization/designation fields.
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
+              </FormItem>
+            )}
+          />
+        )}
         
         {/* {form.watch("isInternal") && (
           <>

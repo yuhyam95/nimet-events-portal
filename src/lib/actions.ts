@@ -351,34 +351,60 @@ export async function deleteEvent(id: string) {
     }
 }
 
-export async function getParticipants(): Promise<(Participant & { eventName: string })[]> {
+export async function getParticipants(): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean })[]> {
    try {
     const db = await getDb();
     const participants = await db.collection("participants").find({}).sort({ _id: 1 }).toArray();
     
-    // Get all events to map event names
+    // Get all events to map event details
     const events = await db.collection("events").find({}).toArray();
-    const eventMap = new Map(events.map(e => [e._id.toString(), e.name]));
+    const eventMap = new Map(events.map(e => [
+      e._id.toString(), 
+      {
+        name: e.name || "Unknown Event",
+        startDate: e.startDate || "",
+        endDate: e.endDate || "",
+        description: e.description || "",
+        location: e.location || "",
+        isInternal: e.isInternal ?? false,
+      }
+    ]));
     
-    return participants.map((p) => ({
-      id: p._id.toString(),
-      name: p.name,
-      organization: p.organization,
-      designation: p.designation || "", // Handle missing designation field
-      department: p.department,
-      position: p.position,
-      contact: p.contact,
-      phone: p.phone || p.interests, // Handle both old and new field names
-      eventId: p.eventId.toString(),
-      eventName: eventMap.get(p.eventId.toString()) || "Unknown Event",
-    }));
+    return participants.map((p) => {
+      const event = eventMap.get(p.eventId.toString()) || {
+        name: "Unknown Event",
+        startDate: "",
+        endDate: "",
+        description: "",
+        location: "",
+        isInternal: false,
+      };
+      
+      return {
+        id: p._id.toString(),
+        name: p.name,
+        organization: p.organization || "", // Handle missing organization field
+        designation: p.designation || "", // Handle missing designation field
+        department: p.department,
+        position: p.position,
+        contact: p.contact,
+        phone: p.phone || p.interests, // Handle both old and new field names
+        eventId: p.eventId.toString(),
+        eventName: event.name,
+        eventStartDate: event.startDate,
+        eventEndDate: event.endDate,
+        eventTheme: event.description,
+        eventLocation: event.location,
+        isInternal: event.isInternal,
+      };
+    });
    } catch(error) {
      console.error("Error fetching participants:", error);
      return [];
    }
 }
 
-export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string })[]> {
+export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean })[]> {
    if (!ObjectId.isValid(eventId)) {
      return [];
    }
@@ -396,11 +422,12 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
     const eventEndDate = event?.endDate || "";
     const eventTheme = event?.description || "";
     const eventLocation = event?.location || "";
+    const isInternal = event?.isInternal ?? false;
     
     return participants.map((p) => ({
       id: p._id.toString(),
       name: p.name,
-      organization: p.organization,
+      organization: p.organization || "", // Handle missing organization field
       designation: p.designation || "", // Handle missing designation field
       department: p.department,
       position: p.position,
@@ -412,6 +439,7 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       eventEndDate: eventEndDate,
       eventTheme: eventTheme,
       eventLocation: eventLocation,
+      isInternal: isInternal,
     }));
    } catch(error) {
      console.error("Error fetching participants for event:", error);
