@@ -4,6 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -62,6 +63,39 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
       position: event?.position || "",
     },
   });
+
+  // Function to generate slug from event name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+      .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  };
+
+  const isEditing = !!event?.id;
+  const eventName = form.watch("name");
+  const currentSlug = form.watch("slug");
+  const previousNameRef = useRef<string>(eventName || "");
+
+  // Auto-generate slug when event name changes (only for new events)
+  useEffect(() => {
+    if (!isEditing && eventName) {
+      const generatedSlug = generateSlug(eventName);
+      const previousGeneratedSlug = generateSlug(previousNameRef.current);
+      
+      // Only auto-update if:
+      // 1. Slug is empty, OR
+      // 2. Current slug matches what would be generated from the previous name (meaning it was auto-generated)
+      // This allows manual override - if user manually edits the slug, it won't be overwritten
+      if (!currentSlug || currentSlug === previousGeneratedSlug) {
+        form.setValue("slug", generatedSlug, { shouldValidate: false });
+      }
+      previousNameRef.current = eventName;
+    }
+  }, [eventName, isEditing, form, currentSlug]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -136,7 +170,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                 <Input placeholder="e.g. Annual-Tech-Conference" {...field} />
               </FormControl>
               <FormDescription>
-                This will be used in the URL: events.nimet.gov.ng/{field.value || "your-slug"}. Can contain letters, numbers, and hyphens.
+                {!event?.id 
+                  ? `Auto-generated from event name. You can edit it if needed. This will be used in the URL: events.nimet.gov.ng/${field.value || "your-slug"}. Can contain letters, numbers, and hyphens.`
+                  : `This will be used in the URL: events.nimet.gov.ng/${field.value || "your-slug"}. Can contain letters, numbers, and hyphens.`
+                }
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -237,7 +274,7 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             <FormItem>
               <FormLabel>Location</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. San Francisco, CA" {...field} />
+                <Input placeholder="e.g. Federal Capital Territory, Abuja" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

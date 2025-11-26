@@ -129,7 +129,7 @@ export function ParticipantList({
         index + 1,
         `"${participant.name}"`,
         `"${participant.isInternal ? "NiMet" : (participant.organization || "-")}"`,
-        `"${participant.designation || "-"}"`,
+        `"${participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}"`,
         `"${participant.contact}"`,
         `"${participant.phone}"`
       ].join(","))
@@ -500,8 +500,18 @@ export function ParticipantList({
     let sortableItems = [...participants];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key] ?? '';
-        const bValue = b[sortConfig.key] ?? '';
+        // For Position column, use position for internal events and designation for external events
+        let aValue: string;
+        let bValue: string;
+        
+        if (sortConfig.key === "designation") {
+          aValue = (a.isInternal ? a.position : a.designation) ?? '';
+          bValue = (b.isInternal ? b.position : b.designation) ?? '';
+        } else {
+          aValue = a[sortConfig.key] ?? '';
+          bValue = b[sortConfig.key] ?? '';
+        }
+        
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
@@ -613,7 +623,7 @@ export function ParticipantList({
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Position: </span>
-              {participant.designation || "-"}
+              {participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Contact: </span>
@@ -696,7 +706,7 @@ export function ParticipantList({
                   <TableCell className="font-medium">{index + 1}</TableCell>
                   <TableCell className="font-medium">{participant.name}</TableCell>
                   <TableCell>{participant.isInternal ? "NiMet" : (participant.organization || "-")}</TableCell>
-                  <TableCell>{participant.designation || "-"}</TableCell>
+                  <TableCell>{participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                   <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                   <TableCell>
