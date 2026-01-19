@@ -41,43 +41,40 @@ const formatEventDate = (dateString: string) => {
 
 export function EventCard({ event }: EventCardProps) {
   return (
-    <Card className="flex flex-col bg-card hover:border-primary/50 transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+    <Card className="flex flex-col bg-card/95 backdrop-blur-sm border-primary/10 shadow-lg hover:shadow-2xl hover:border-primary/50 transition-all duration-300 ease-in-out transform hover:-translate-y-2 group">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">{event.name}</CardTitle>
-        <CardDescription className="pt-2">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            <span>Start: {formatEventDate(event.startDate)}</span>
+        <div className="flex justify-between items-start mb-2">
+          <CardTitle className="font-headline text-2xl text-primary group-hover:text-primary/80 transition-colors uppercase tracking-tight">{event.name}</CardTitle>
+        </div>
+        <CardDescription className="space-y-2 pt-2">
+          <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 px-3 py-1 rounded-full w-fit">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium">{formatEventDate(event.startDate)}</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground mt-1">
-            <CalendarDays className="h-4 w-4" />
-            <span>End: {formatEventDate(event.endDate)}</span>
+          <div className="flex items-center gap-2 text-muted-foreground bg-secondary/30 px-3 py-1 rounded-full w-fit">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium">{event.location}</span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground mt-1">
-            <MapPin className="h-4 w-4" />
-            <span>{event.location}</span>
-          </div>
-          {event.isInternal && event.department && (
-            <div className="flex items-center gap-2 text-muted-foreground mt-1">
-              <span className="text-xs font-medium">Department:</span>
-              <span className="text-xs">{event.department}</span>
-            </div>
-          )}
-          {event.isInternal && event.position && (
-            <div className="flex items-center gap-2 text-muted-foreground mt-1">
-              <span className="text-xs font-medium">Position:</span>
-              <span className="text-xs">{event.position}</span>
-            </div>
-          )}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-foreground/80">{event.description}</p>
+      <CardContent className="flex-grow pt-4">
+        <p className="text-foreground/80 line-clamp-3 text-sm leading-relaxed">{event.description}</p>
+
+        {event.isInternal && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {event.department && (
+              <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">{event.department}</span>
+            )}
+            {event.position && (
+              <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase">{event.position}</span>
+            )}
+          </div>
+        )}
       </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full bg-primary/90 hover:bg-primary">
-          <Link href={`/${event.slug}`}>
-            Register Now <ArrowRight className="ml-2 h-4 w-4" />
+      <CardFooter className="pt-6">
+        <Button asChild className="w-full bg-primary hover:bg-primary/90 shadow-md group-hover:shadow-lg transition-all">
+          <Link href={`/${event.slug}`} className="flex items-center justify-center">
+            Register Now <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </Button>
       </CardFooter>
