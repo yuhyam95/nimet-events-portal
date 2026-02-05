@@ -28,6 +28,8 @@ export interface Participant {
   phone: string;
   eventId: string;
   qrEmailSent?: boolean;
+  onboardedBy?: string; // ID of the staff who onboarded this participant
+  onboardingDate?: string; // Date when manual onboarding happened
 }
 
 export interface Attendance {
@@ -38,6 +40,9 @@ export interface Attendance {
   attendanceDate: string; // Date in YYYY-MM-DD format for day-by-day tracking
   participantName?: string;
   participantOrganization?: string;
+  checkedInBy?: string; // ID of the staff who scanned the QR
+  signedBy?: string; // Name of the user who onboarded the participant or 'Self'
+  participantPosition?: string; // Position or designation of the participant
 }
 
 export interface User {

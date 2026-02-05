@@ -39,7 +39,7 @@ export function AttendanceList({
     key: SortKey;
     direction: "ascending" | "descending";
   } | null>({ key: "checkedInAt", direction: "descending" });
-  
+
   const isMobile = useIsMobile();
 
   const handleSort = (key: SortKey) => {
@@ -77,9 +77,11 @@ export function AttendanceList({
     const headers = [
       "S/N",
       "Participant Name",
-      "Organization", 
+      "Organization",
+      "Position",
       "Attendance Date",
-      "Checked In At"
+      "Checked In At",
+      "Signed By"
     ];
 
     const csvContent = [
@@ -89,8 +91,10 @@ export function AttendanceList({
         index + 1,
         `"${record.participantName}"`,
         `"${record.participantOrganization}"`,
+        `"${record.participantPosition || ''}"`,
         `"${record.attendanceDate}"`,
-        `"${format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}"`
+        `"${format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}"`,
+        `"${record.signedBy || ''}"`
       ].join(","))
     ].join("\n");
 
@@ -107,18 +111,18 @@ export function AttendanceList({
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
     <TableHead className="bg-green-50">
-        <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
+      <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
         {children}
         {sortConfig?.key === sortKey ? (
-            sortConfig.direction === "ascending" ? (
+          sortConfig.direction === "ascending" ? (
             <ChevronUp className="ml-2 h-4 w-4" />
-            ) : (
+          ) : (
             <ChevronDown className="ml-2 h-4 w-4" />
-            )
+          )
         ) : (
-            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
         )}
-        </Button>
+      </Button>
     </TableHead>
   );
 
@@ -137,6 +141,10 @@ export function AttendanceList({
               <span className="font-semibold">Organization: </span>
               {record.participantOrganization}
             </p>
+            <p className="text-sm">
+              <span className="font-semibold">Position: </span>
+              {record.participantPosition || '-'}
+            </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Attendance Date: </span>
               {record.attendanceDate}
@@ -145,6 +153,12 @@ export function AttendanceList({
               <span className="font-semibold text-foreground">Checked In: </span>
               {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
             </p>
+            {record.signedBy && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">Signed By: </span>
+                {record.signedBy}
+              </p>
+            )}
           </CardContent>
         </Card>
       ))}
@@ -152,45 +166,51 @@ export function AttendanceList({
   );
 
   const renderDesktopTable = () => (
-     <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-green-50">
-              <TableHead className="bg-green-50">S/N</TableHead>
-              <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
-              <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
-              <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
-              <SortableHeader sortKey="checkedInAt">Checked In At</SortableHeader>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedAndFilteredAttendance.length > 0 ? (
-              sortedAndFilteredAttendance.map((record, index) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
-                  <TableCell className="font-medium flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    {record.participantName}
-                  </TableCell>
-                  <TableCell>{record.participantOrganization}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {record.attendanceDate}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No attendance records found.
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-green-50">
+            <TableHead className="bg-green-50">S/N</TableHead>
+            <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
+            <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
+            <SortableHeader sortKey="participantPosition">Position</SortableHeader>
+            <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
+            <SortableHeader sortKey="checkedInAt">Checked In At</SortableHeader>
+            <SortableHeader sortKey="signedBy">Signed By</SortableHeader>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedAndFilteredAttendance.length > 0 ? (
+            sortedAndFilteredAttendance.map((record, index) => (
+              <TableRow key={record.id}>
+                <TableCell className="font-medium">{index + 1}</TableCell>
+                <TableCell className="font-medium flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  {record.participantName}
+                </TableCell>
+                <TableCell>{record.participantOrganization}</TableCell>
+                <TableCell>{record.participantPosition || '-'}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {record.attendanceDate}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {record.signedBy || '-'}
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={7} className="h-24 text-center">
+                No attendance records found.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 
   return (
@@ -201,7 +221,7 @@ export function AttendanceList({
           {sortedAndFilteredAttendance.length} attendance record{sortedAndFilteredAttendance.length !== 1 ? 's' : ''}
         </p>
       </div>
-      
+
       <div className="flex items-center py-4 gap-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -222,7 +242,7 @@ export function AttendanceList({
           Export CSV
         </Button>
       </div>
-     
+
       {isMobile ? renderMobileList() : renderDesktopTable()}
     </>
   );

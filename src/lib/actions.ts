@@ -18,20 +18,23 @@ const ParticipantSchema = z.object({
   contact: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(11, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
+  onboardedBy: z.string().optional(),
+  onboardingDate: z.string().optional(),
+  skipDuplicateCheck: z.boolean().optional(),
 });
 
 const EventSchema = z.object({
-    name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-    slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-zA-Z0-9-]+$/, { message: "URL slug can only contain letters, numbers, and hyphens." }),
-    startDate: z.string().min(1, { message: "Start date is required." }),
-    endDate: z.string().min(1, { message: "End date is required." }),
-    location: z.string().min(3, { message: "Location must be at least 3 characters." }),
-    description: z.string().optional(),
-    isActive: z.boolean().optional(),
-    isInternal: z.boolean().optional(),
-    department: z.string().optional(),
-    position: z.string().optional(),
-    assignedStaff: z.array(z.string()).optional(),
+  name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
+  slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-zA-Z0-9-]+$/, { message: "URL slug can only contain letters, numbers, and hyphens." }),
+  startDate: z.string().min(1, { message: "Start date is required." }),
+  endDate: z.string().min(1, { message: "End date is required." }),
+  location: z.string().min(3, { message: "Location must be at least 3 characters." }),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isInternal: z.boolean().optional(),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  assignedStaff: z.array(z.string()).optional(),
 });
 
 const UserSchema = z.object({
@@ -64,7 +67,7 @@ export async function deactivateExpiredEvents(): Promise<void> {
   try {
     const db = await getDb();
     const now = new Date();
-    
+
     // Find events that are currently active (or undefined) and have passed their end date
     const events = await db.collection("events").find({
       $or: [
@@ -72,16 +75,16 @@ export async function deactivateExpiredEvents(): Promise<void> {
         { isActive: true }
       ]
     }).toArray();
-    
+
     let deactivatedCount = 0;
-    
+
     for (const event of events) {
       const endDate = new Date(event.endDate || event.date);
-      
+
       // If end date has passed (using end of day for endDate)
       const endOfDay = new Date(endDate);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       if (now > endOfDay) {
         await db.collection("events").updateOne(
           { _id: event._id },
@@ -90,7 +93,7 @@ export async function deactivateExpiredEvents(): Promise<void> {
         deactivatedCount++;
       }
     }
-    
+
     if (deactivatedCount > 0) {
       console.log(`Automatically deactivated ${deactivatedCount} expired event(s)`);
     }
@@ -104,21 +107,21 @@ export async function getEvents(): Promise<Event[]> {
   try {
     // Automatically deactivate expired events
     await deactivateExpiredEvents();
-    
+
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
-    
+
     return events.map((event) => {
       const startDate = new Date(event.startDate || event.date);
       const endDate = new Date(event.endDate || event.date);
-      
+
       // Calculate if event should be active based on dates
       const shouldBeActive = now >= startDate && now <= endDate;
-      
+
       // Use stored isActive if it exists, otherwise calculate based on dates
       const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-      
+
       return {
         id: event._id.toString(),
         name: event.name,
@@ -144,21 +147,21 @@ export async function getActiveEvents(): Promise<Event[]> {
   try {
     // Automatically deactivate expired events
     await deactivateExpiredEvents();
-    
+
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
-    
+
     return events.map((event) => {
       const startDate = new Date(event.startDate || event.date);
       const endDate = new Date(event.endDate || event.date);
-      
+
       // Calculate if event should be active based on dates
       const shouldBeActive = now >= startDate && now <= endDate;
-      
+
       // Use stored isActive if it exists, otherwise calculate based on dates
       const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-      
+
       return {
         id: event._id.toString(),
         name: event.name,
@@ -188,17 +191,17 @@ export async function getEventById(id: string): Promise<Event | null> {
     const db = await getDb();
     const event = await db.collection("events").findOne({ _id: new ObjectId(id) });
     if (!event) return null;
-    
+
     const now = new Date();
     const startDate = new Date(event.startDate || event.date);
     const endDate = new Date(event.endDate || event.date);
-    
+
     // Calculate if event should be active based on dates
     const shouldBeActive = now >= startDate && now <= endDate;
-    
+
     // Use stored isActive if it exists, otherwise calculate based on dates
     const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-    
+
     return {
       id: event._id.toString(),
       name: event.name,
@@ -223,17 +226,17 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
     const db = await getDb();
     const event = await db.collection("events").findOne({ slug });
     if (!event) return null;
-    
+
     const now = new Date();
     const startDate = new Date(event.startDate || event.date);
     const endDate = new Date(event.endDate || event.date);
-    
+
     // Calculate if event should be active based on dates
     const shouldBeActive = now >= startDate && now <= endDate;
-    
+
     // Use stored isActive if it exists, otherwise calculate based on dates
     const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-    
+
     return {
       id: event._id.toString(),
       name: event.name,
@@ -254,112 +257,112 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 }
 
 export async function addEvent(data: unknown) {
-    const validation = EventSchema.safeParse(data);
-    if (!validation.success) {
-        throw new Error("Invalid event data");
+  const validation = EventSchema.safeParse(data);
+  if (!validation.success) {
+    throw new Error("Invalid event data");
+  }
+
+  try {
+    const db = await getDb();
+
+    // Check if slug already exists
+    const existingEvent = await db.collection("events").findOne({ slug: validation.data.slug });
+    if (existingEvent) {
+      throw new Error("An event with this URL slug already exists. Please choose a different slug.");
     }
 
-    try {
-        const db = await getDb();
-        
-        // Check if slug already exists
-        const existingEvent = await db.collection("events").findOne({ slug: validation.data.slug });
-        if (existingEvent) {
-            throw new Error("An event with this URL slug already exists. Please choose a different slug.");
-        }
-        
-        // Calculate isActive based on dates if not provided
-        const now = new Date();
-        const startDate = new Date(validation.data.startDate);
-        const endDate = new Date(validation.data.endDate);
-        const shouldBeActive = now >= startDate && now <= endDate;
-        
-        const eventData = {
-            ...validation.data,
-            isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
-        };
-        
-        await db.collection("events").insertOne(eventData);
-    } catch (error) {
-        console.error("Failed to add event:", error);
-        throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add event.");
-    }
+    // Calculate isActive based on dates if not provided
+    const now = new Date();
+    const startDate = new Date(validation.data.startDate);
+    const endDate = new Date(validation.data.endDate);
+    const shouldBeActive = now >= startDate && now <= endDate;
+
+    const eventData = {
+      ...validation.data,
+      isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
+    };
+
+    await db.collection("events").insertOne(eventData);
+  } catch (error) {
+    console.error("Failed to add event:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add event.");
+  }
 }
 
 export async function updateEvent(id: string, data: unknown) {
-    if (!ObjectId.isValid(id)) {
-        throw new Error("Invalid event ID");
+  if (!ObjectId.isValid(id)) {
+    throw new Error("Invalid event ID");
+  }
+
+  const validation = EventSchema.safeParse(data);
+  if (!validation.success) {
+    throw new Error("Invalid event data");
+  }
+
+  try {
+    const db = await getDb();
+
+    // Check if slug already exists for a different event
+    const existingEvent = await db.collection("events").findOne({
+      slug: validation.data.slug,
+      _id: { $ne: new ObjectId(id) }
+    });
+    if (existingEvent) {
+      throw new Error("An event with this URL slug already exists. Please choose a different slug.");
     }
 
-    const validation = EventSchema.safeParse(data);
-    if (!validation.success) {
-        throw new Error("Invalid event data");
-    }
+    // Calculate isActive based on dates if not provided
+    const now = new Date();
+    const startDate = new Date(validation.data.startDate);
+    const endDate = new Date(validation.data.endDate);
+    const shouldBeActive = now >= startDate && now <= endDate;
 
-    try {
-        const db = await getDb();
-        
-        // Check if slug already exists for a different event
-        const existingEvent = await db.collection("events").findOne({ 
-            slug: validation.data.slug,
-            _id: { $ne: new ObjectId(id) }
-        });
-        if (existingEvent) {
-            throw new Error("An event with this URL slug already exists. Please choose a different slug.");
-        }
-        
-        // Calculate isActive based on dates if not provided
-        const now = new Date();
-        const startDate = new Date(validation.data.startDate);
-        const endDate = new Date(validation.data.endDate);
-        const shouldBeActive = now >= startDate && now <= endDate;
-        
-        const eventData = {
-            ...validation.data,
-            isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
-        };
-        
-        const result = await db.collection("events").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: eventData }
-        );
-        
-        if (result.matchedCount === 0) {
-            throw new Error("Event not found");
-        }
-    } catch (error) {
-        console.error("Failed to update event:", error);
-        throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update event.");
+    const eventData = {
+      ...validation.data,
+      isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
+    };
+
+    const result = await db.collection("events").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: eventData }
+    );
+
+    if (result.matchedCount === 0) {
+      throw new Error("Event not found");
     }
+  } catch (error) {
+    console.error("Failed to update event:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update event.");
+  }
 }
 
 export async function deleteEvent(id: string) {
-    if (!ObjectId.isValid(id)) {
-        throw new Error("Invalid event ID");
-    }
+  if (!ObjectId.isValid(id)) {
+    throw new Error("Invalid event ID");
+  }
 
-    try {
-        const db = await getDb();
-        const result = await db.collection("events").deleteOne({ _id: new ObjectId(id) });
-        
-        if (result.deletedCount === 0) {
-            throw new Error("Event not found");
-        }
-    } catch (error) {
-        console.error("Failed to delete event:", error);
-        throw new Error("Database operation failed. Could not delete event.");
+  try {
+    const db = await getDb();
+    const result = await db.collection("events").deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      throw new Error("Event not found");
     }
+  } catch (error) {
+    console.error("Failed to delete event:", error);
+    throw new Error("Database operation failed. Could not delete event.");
+  }
 }
 
 export async function getParticipants(): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean })[]> {
-   try {
+  try {
     const db = await getDb();
     const participants = await db.collection("participants").find({}).sort({ _id: 1 }).toArray();
-    
+
     // Get all events to map event details
     const events = await db.collection("events").find({}).toArray();
     const eventMap = new Map(events.map(e => [
-      e._id.toString(), 
+      e._id.toString(),
       {
         name: e.name || "Unknown Event",
         startDate: e.startDate || "",
@@ -369,7 +372,7 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         isInternal: e.isInternal ?? false,
       }
     ]));
-    
+
     return participants.map((p) => {
       const event = eventMap.get(p.eventId.toString()) || {
         name: "Unknown Event",
@@ -379,7 +382,7 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         location: "",
         isInternal: false,
       };
-      
+
       return {
         id: p._id.toString(),
         name: p.name,
@@ -396,25 +399,27 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         eventTheme: event.description,
         eventLocation: event.location,
         isInternal: event.isInternal,
+        onboardedBy: p.onboardedBy,
+        onboardingDate: p.onboardingDate
       };
     });
-   } catch(error) {
-     console.error("Error fetching participants:", error);
-     return [];
-   }
+  } catch (error) {
+    console.error("Error fetching participants:", error);
+    return [];
+  }
 }
 
 export async function getParticipantsByEventId(eventId: string): Promise<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean })[]> {
-   if (!ObjectId.isValid(eventId)) {
-     return [];
-   }
+  if (!ObjectId.isValid(eventId)) {
+    return [];
+  }
 
-   try {
+  try {
     const db = await getDb();
-    const participants = await db.collection("participants").find({ 
-      eventId: new ObjectId(eventId) 
+    const participants = await db.collection("participants").find({
+      eventId: new ObjectId(eventId)
     }).sort({ _id: 1 }).toArray();
-    
+
     // Get the specific event to get its details
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     const eventName = event?.name || "Unknown Event";
@@ -423,7 +428,7 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
     const eventTheme = event?.description || "";
     const eventLocation = event?.location || "";
     const isInternal = event?.isInternal ?? false;
-    
+
     return participants.map((p) => ({
       id: p._id.toString(),
       name: p.name,
@@ -440,11 +445,13 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       eventTheme: eventTheme,
       eventLocation: eventLocation,
       isInternal: isInternal,
+      onboardedBy: p.onboardedBy,
+      onboardingDate: p.onboardingDate
     }));
-   } catch(error) {
-     console.error("Error fetching participants for event:", error);
-     return [];
-   }
+  } catch (error) {
+    console.error("Error fetching participants for event:", error);
+    return [];
+  }
 }
 
 export async function addParticipant(data: unknown): Promise<{ success: boolean; error?: string; participantId?: string }> {
@@ -454,37 +461,40 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
   }
 
   const { eventId, ...participantData } = validation.data;
-  
+
   // Normalize email to lowercase
   participantData.contact = participantData.contact.toLowerCase().trim();
-  
+
   if (!ObjectId.isValid(eventId)) {
     return { success: false, error: "Invalid event ID" };
   }
 
   try {
     const db = await getDb();
-    
+
     // Check if email already exists for this event
-    const existingEmail = await db.collection("participants").findOne({ 
-      eventId: new ObjectId(eventId),
-      contact: participantData.contact 
-    });
-    
-    if (existingEmail) {
-      return { success: false, error: "A participant with this email address has already registered for this event." };
+    // Only perform check if skipDuplicateCheck is NOT true
+    if (!(participantData as any).skipDuplicateCheck) {
+      const existingEmail = await db.collection("participants").findOne({
+        eventId: new ObjectId(eventId),
+        contact: participantData.contact
+      });
+
+      if (existingEmail) {
+        return { success: false, error: "A participant with this email address has already registered for this event." };
+      }
+
+      // Check if phone number already exists for this event
+      const existingPhone = await db.collection("participants").findOne({
+        eventId: new ObjectId(eventId),
+        phone: participantData.phone
+      });
+
+      if (existingPhone) {
+        return { success: false, error: "A participant with this phone number has already registered for this event." };
+      }
     }
-    
-    // Check if phone number already exists for this event
-    const existingPhone = await db.collection("participants").findOne({ 
-      eventId: new ObjectId(eventId),
-      phone: participantData.phone 
-    });
-    
-    if (existingPhone) {
-      return { success: false, error: "A participant with this phone number has already registered for this event." };
-    }
-    
+
     const result = await db.collection("participants").insertOne({
       ...participantData,
       eventId: new ObjectId(eventId)
@@ -501,7 +511,7 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
         const endDate = new Date(event.endDate || event.date);
         const shouldBeActive = now >= startDate && now <= endDate;
         const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-        
+
         const mappedEvent: Event = {
           id: event._id.toString(),
           name: event.name,
@@ -547,7 +557,7 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
     return { success: true, participantId: result.insertedId.toString() };
   } catch (error) {
     console.error("Failed to add participant:", error);
-    
+
     // Return generic error for unexpected issues
     return { success: false, error: "Database operation failed. Could not add participant." };
   }
@@ -620,16 +630,16 @@ export async function createUser(data: unknown): Promise<User> {
 
   try {
     const db = await getDb();
-    
+
     // Check if email already exists
     const existingUser = await db.collection("users").findOne({ email: validation.data.email });
     if (existingUser) {
       throw new Error("A user with this email already exists.");
     }
-    
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(validation.data.password, 12);
-    
+
     const now = new Date().toISOString();
     const userData = {
       ...validation.data,
@@ -637,9 +647,9 @@ export async function createUser(data: unknown): Promise<User> {
       createdAt: now,
       updatedAt: now,
     };
-    
+
     const result = await db.collection("users").insertOne(userData);
-    
+
     return {
       id: result.insertedId.toString(),
       fullName: validation.data.fullName,
@@ -666,16 +676,16 @@ export async function updateUser(id: string, data: unknown): Promise<User> {
 
   try {
     const db = await getDb();
-    
+
     // Check if email already exists for a different user
-    const existingUser = await db.collection("users").findOne({ 
+    const existingUser = await db.collection("users").findOne({
       email: validation.data.email,
       _id: { $ne: new ObjectId(id) }
     });
     if (existingUser) {
       throw new Error("A user with this email already exists.");
     }
-    
+
     const now = new Date().toISOString();
     const updateData: any = {
       fullName: validation.data.fullName,
@@ -683,28 +693,28 @@ export async function updateUser(id: string, data: unknown): Promise<User> {
       role: validation.data.role,
       updatedAt: now,
     };
-    
+
     // Hash password if provided
     if (validation.data.password) {
       updateData.password = await bcrypt.hash(validation.data.password, 12);
     }
-    
+
     const result = await db.collection("users").updateOne(
       { _id: new ObjectId(id) },
-      { 
+      {
         $set: updateData
       }
     );
-    
+
     if (result.matchedCount === 0) {
       throw new Error("User not found");
     }
-    
+
     const updatedUser = await getUserById(id);
     if (!updatedUser) {
       throw new Error("Failed to retrieve updated user");
     }
-    
+
     return updatedUser;
   } catch (error) {
     console.error("Failed to update user:", error);
@@ -720,7 +730,7 @@ export async function deleteUser(id: string): Promise<void> {
   try {
     const db = await getDb();
     const result = await db.collection("users").deleteOne({ _id: new ObjectId(id) });
-    
+
     if (result.deletedCount === 0) {
       throw new Error("User not found");
     }
@@ -742,33 +752,33 @@ export async function changePassword(id: string, data: unknown): Promise<void> {
 
   try {
     const db = await getDb();
-    
+
     // Get the user to verify current password
     const user = await db.collection("users").findOne({ _id: new ObjectId(id) });
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(validation.data.currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       throw new Error("Current password is incorrect");
     }
-    
+
     // Hash the new password
     const hashedNewPassword = await bcrypt.hash(validation.data.newPassword, 12);
-    
+
     const now = new Date().toISOString();
     const result = await db.collection("users").updateOne(
       { _id: new ObjectId(id) },
-      { 
+      {
         $set: {
           password: hashedNewPassword,
           updatedAt: now,
         }
       }
     );
-    
+
     if (result.matchedCount === 0) {
       throw new Error("User not found");
     }
@@ -781,19 +791,19 @@ export async function changePassword(id: string, data: unknown): Promise<void> {
 export async function authenticateUser(email: string, password: string): Promise<{ user: User; token: string } | null> {
   try {
     const db = await getDb();
-    
+
     // Find user by email
     const user = await db.collection("users").findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return null;
     }
-    
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return null;
     }
-    
+
     // Convert to User type
     const userData: User = {
       id: user._id.toString(),
@@ -803,10 +813,10 @@ export async function authenticateUser(email: string, password: string): Promise
       createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
       updatedAt: user.updatedAt instanceof Date ? user.updatedAt.toISOString() : user.updatedAt,
     };
-    
+
     // Generate JWT token
     const token = generateToken(userData);
-    
+
     return { user: userData, token };
   } catch (error) {
     console.error("Authentication failed:", error);
@@ -820,7 +830,7 @@ export async function verifyUserToken(token: string): Promise<User | null> {
     if (!payload) {
       return null;
     }
-    
+
     // Get fresh user data from database
     const user = await getUserById(payload.userId);
     return user;
@@ -837,44 +847,44 @@ export async function assignStaffToEvent(eventId: string, userId: string): Promi
 
   try {
     const db = await getDb();
-    
+
     // Check if event exists
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     if (!event) {
       return { success: false, error: "Event not found" };
     }
-    
+
     // Check if user exists
     const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
     if (!user) {
       return { success: false, error: "User not found" };
     }
-    
+
     // Get current assigned staff
     const currentStaff = event.assignedStaff || [];
-    
+
     // Check if user is already assigned
     if (currentStaff.includes(userId)) {
       return { success: false, error: "User is already assigned to this event" };
     }
-    
+
     // Add user to assigned staff
     const updatedStaff = [...currentStaff, userId];
-    
+
     const result = await db.collection("events").updateOne(
       { _id: new ObjectId(eventId) },
-      { 
+      {
         $set: {
           assignedStaff: updatedStaff,
           updatedAt: new Date().toISOString(),
         }
       }
     );
-    
+
     if (result.matchedCount === 0) {
       return { success: false, error: "Failed to update event" };
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error("Failed to assign staff to event:", error);
@@ -889,38 +899,38 @@ export async function unassignStaffFromEvent(eventId: string, userId: string): P
 
   try {
     const db = await getDb();
-    
+
     // Check if event exists
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     if (!event) {
       return { success: false, error: "Event not found" };
     }
-    
+
     // Get current assigned staff
     const currentStaff = event.assignedStaff || [];
-    
+
     // Check if user is assigned
     if (!currentStaff.includes(userId)) {
       return { success: false, error: "User is not assigned to this event" };
     }
-    
+
     // Remove user from assigned staff
     const updatedStaff = currentStaff.filter((id: string) => id !== userId);
-    
+
     const result = await db.collection("events").updateOne(
       { _id: new ObjectId(eventId) },
-      { 
+      {
         $set: {
           assignedStaff: updatedStaff,
           updatedAt: new Date().toISOString(),
         }
       }
     );
-    
+
     if (result.matchedCount === 0) {
       return { success: false, error: "Failed to update event" };
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error("Failed to unassign staff from event:", error);
@@ -935,17 +945,17 @@ export async function getEventAssignedStaff(eventId: string): Promise<User[]> {
 
   try {
     const db = await getDb();
-    
+
     // Get event with assigned staff
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     if (!event || !event.assignedStaff || event.assignedStaff.length === 0) {
       return [];
     }
-    
+
     // Get user details for assigned staff
     const staffIds = event.assignedStaff.map((id: string) => new ObjectId(id));
     const staff = await db.collection("users").find({ _id: { $in: staffIds } }).toArray();
-    
+
     return staff.map(user => ({
       id: user._id.toString(),
       fullName: user.fullName,
@@ -967,24 +977,24 @@ export async function canUserTakeAttendance(eventId: string, userId: string): Pr
 
   try {
     const db = await getDb();
-    
+
     // Get user to check if they're admin
     const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
     if (!user) {
       return false;
     }
-    
+
     // Admins can always take attendance
     if (user.role === 'admin') {
       return true;
     }
-    
+
     // Check if user is assigned to the event
     const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     if (!event) {
       return false;
     }
-    
+
     const assignedStaff = event.assignedStaff || [];
     return assignedStaff.includes(userId);
   } catch (error) {
@@ -999,7 +1009,7 @@ export async function markAttendance(participantId: string, eventId: string, att
   console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId, 'attendanceDate:', attendanceDate);
   console.log('participantId isValid:', ObjectId.isValid(participantId));
   console.log('eventId isValid:', ObjectId.isValid(eventId));
-  
+
   if (!ObjectId.isValid(participantId) || !ObjectId.isValid(eventId)) {
     console.log('Invalid IDs - participantId:', participantId, 'eventId:', eventId);
     return { success: false, error: "Invalid participant or event ID" };
@@ -1015,30 +1025,30 @@ export async function markAttendance(participantId: string, eventId: string, att
 
   try {
     const db = await getDb();
-    
+
     // Check if participant exists and belongs to the event
-    const participant = await db.collection("participants").findOne({ 
+    const participant = await db.collection("participants").findOne({
       _id: new ObjectId(participantId),
       eventId: new ObjectId(eventId)
     });
-    
+
     if (!participant) {
       return { success: false, error: "Participant not found for this event" };
     }
-    
+
     // Use provided date or default to today
     const dateToUse = attendanceDate || new Date().toISOString().split('T')[0];
-    
+
     // Check if already checked in for this specific date
     const existingAttendance = await db.collection("attendance").findOne({
       participantId: new ObjectId(participantId),
       eventId: new ObjectId(eventId),
       attendanceDate: dateToUse
     });
-    
+
     if (existingAttendance) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: `Participant has already been marked as present for ${dateToUse}`,
         attendance: {
           id: existingAttendance._id.toString(),
@@ -1051,7 +1061,7 @@ export async function markAttendance(participantId: string, eventId: string, att
         }
       };
     }
-    
+
     // Mark attendance
     const now = new Date().toISOString();
     const attendanceData = {
@@ -1060,9 +1070,9 @@ export async function markAttendance(participantId: string, eventId: string, att
       checkedInAt: now,
       attendanceDate: dateToUse
     };
-    
+
     const result = await db.collection("attendance").insertOne(attendanceData);
-    
+
     return {
       success: true,
       attendance: {
@@ -1091,34 +1101,58 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
     // Fetch event to determine if it is internal
     const eventDoc = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
     const isInternalEvent = !!eventDoc?.isInternal;
-    
+
     // Build query filter
     const filter: any = { eventId: new ObjectId(eventId) };
     if (attendanceDate) {
       filter.attendanceDate = attendanceDate;
     }
-    
+
     const attendance = await db.collection("attendance").find(filter).sort({ checkedInAt: -1 }).toArray();
-    
+
     // Get participant details for each attendance record
     const participantIds = attendance.map(a => a.participantId);
     const participants = await db.collection("participants").find({
       _id: { $in: participantIds }
     }).toArray();
-    
+
     const participantMap = new Map(participants.map(p => [p._id.toString(), p]));
-    
-    return attendance.map((a) => ({
-      id: a._id.toString(),
-      participantId: a.participantId.toString(),
-      eventId: a.eventId.toString(),
-      checkedInAt: a.checkedInAt,
-      attendanceDate: a.attendanceDate || new Date(a.checkedInAt).toISOString().split('T')[0],
-      participantName: participantMap.get(a.participantId.toString())?.name || "Unknown",
-      participantOrganization: isInternalEvent
-        ? "NiMet"
-        : (participantMap.get(a.participantId.toString())?.organization || "Unknown")
-    }));
+
+    // Get onboardedBy user IDs
+    const onboardedByUserIds = participants
+      .map(p => p.onboardedBy)
+      .filter(id => id && ObjectId.isValid(id))
+      .map(id => new ObjectId(id as string));
+
+    let userMap = new Map<string, string>();
+    if (onboardedByUserIds.length > 0) {
+      const users = await db.collection("users").find({
+        _id: { $in: onboardedByUserIds as any[] }
+      }).toArray();
+      userMap = new Map(users.map(u => [u._id.toString(), u.fullName]));
+    }
+
+    return attendance.map((a) => {
+      const participant = participantMap.get(a.participantId.toString());
+      const signedById = participant?.onboardedBy;
+      const signedByName = signedById ? (userMap.get(signedById) || "Unknown") : "Self";
+
+      return {
+        id: a._id.toString(),
+        participantId: a.participantId.toString(),
+        eventId: a.eventId.toString(),
+        checkedInAt: a.checkedInAt,
+        attendanceDate: a.attendanceDate || new Date(a.checkedInAt).toISOString().split('T')[0],
+        participantName: participant?.name || "Unknown",
+        participantOrganization: isInternalEvent
+          ? "NiMet"
+          : (participant?.organization || "Unknown"),
+        participantPosition: isInternalEvent
+          ? (participant?.position || participant?.designation || "")
+          : (participant?.designation || participant?.position || ""),
+        signedBy: signedByName
+      };
+    });
   } catch (error) {
     console.error("Error fetching attendance:", error);
     return [];
@@ -1132,22 +1166,22 @@ export async function getAttendanceStats(eventId: string, attendanceDate?: strin
 
   try {
     const db = await getDb();
-    
+
     // Get total participants for the event
-    const totalParticipants = await db.collection("participants").countDocuments({ 
-      eventId: new ObjectId(eventId) 
+    const totalParticipants = await db.collection("participants").countDocuments({
+      eventId: new ObjectId(eventId)
     });
-    
+
     // Build attendance filter
     const attendanceFilter: any = { eventId: new ObjectId(eventId) };
     if (attendanceDate) {
       attendanceFilter.attendanceDate = attendanceDate;
     }
-    
+
     // Get checked-in DISTINCT participants for the specific date or all time
     const distinctIds = await db.collection("attendance").distinct("participantId", attendanceFilter);
     const checkedIn = Array.isArray(distinctIds) ? distinctIds.length : 0;
-    
+
     return {
       totalParticipants,
       checkedIn,
@@ -1166,22 +1200,24 @@ export async function getAttendanceStatsByDate(eventId: string): Promise<{ date:
 
   try {
     const db = await getDb();
-    
+
     // Get total participants for the event
-    const totalParticipants = await db.collection("participants").countDocuments({ 
-      eventId: new ObjectId(eventId) 
+    const totalParticipants = await db.collection("participants").countDocuments({
+      eventId: new ObjectId(eventId)
     });
-    
+
     // Get all attendance records grouped by date
     const attendanceByDate = await db.collection("attendance").aggregate([
       { $match: { eventId: new ObjectId(eventId) } },
-      { $group: { 
-        _id: "$attendanceDate", 
-        checkedIn: { $sum: 1 }
-      }},
+      {
+        $group: {
+          _id: "$attendanceDate",
+          checkedIn: { $sum: 1 }
+        }
+      },
       { $sort: { _id: 1 } }
     ]).toArray();
-    
+
     return attendanceByDate.map(record => ({
       date: record._id,
       totalParticipants,
@@ -1285,7 +1321,7 @@ export async function sendQRCodesToAllParticipants(eventId: string, batchSize: n
     for (let i = 0; i < participants.length; i += batchSize) {
       const batch = participants.slice(i, i + batchSize);
       console.log(`Processing batch ${batchesProcessed + 1}: participants ${i + 1}-${Math.min(i + batchSize, participants.length)} of ${totalParticipants}`);
-      
+
       for (const participant of batch) {
         try {
           // Map participant data to match component format (with id field)
@@ -1317,23 +1353,23 @@ export async function sendQRCodesToAllParticipants(eventId: string, batchSize: n
             participant: mappedParticipant,
             event: mappedEvent
           });
-          
+
           // Mark participant as having received QR code email
           await db.collection("participants").updateOne(
             { _id: participant._id },
             { $set: { qrEmailSent: true } }
           );
-          
+
           sent++;
-          
+
         } catch (error) {
           failed++;
           errors.push(`Failed to send to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
-      
+
       batchesProcessed++;
-      
+
       // Add delay between batches (2 seconds) to respect rate limits
       if (i + batchSize < participants.length) {
         console.log(`Batch ${batchesProcessed} completed. Waiting 2 seconds before next batch...`);
@@ -1437,7 +1473,7 @@ export async function sendFollowUpToAllParticipants(eventId: string, message?: s
     for (let i = 0; i < participants.length; i += batchSize) {
       const batch = participants.slice(i, i + batchSize);
       console.log(`Processing follow-up batch ${batchesProcessed + 1}: participants ${i + 1}-${Math.min(i + batchSize, participants.length)} of ${totalParticipants}`);
-      
+
       for (const participant of batch) {
         try {
           // Map participant data to match component format (with id field)
@@ -1472,17 +1508,17 @@ export async function sendFollowUpToAllParticipants(eventId: string, message?: s
             surveyLink: surveyLink,
             qrCodeImage: qrCodeImage
           });
-          
+
           sent++;
-          
+
         } catch (error) {
           failed++;
           errors.push(`Failed to send follow-up to ${participant.contact}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
-      
+
       batchesProcessed++;
-      
+
       // Add delay between batches (2 seconds) to respect rate limits
       if (i + batchSize < participants.length) {
         console.log(`Follow-up batch ${batchesProcessed} completed. Waiting 2 seconds before next batch...`);

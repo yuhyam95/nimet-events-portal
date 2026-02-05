@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { markAttendance } from '@/lib/actions';
 import { decryptQRCodeData } from '@/lib/qr-generator';
+import { requireAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 
-export async function POST(request: NextRequest) {
+async function handlePostAttendance(request: AuthenticatedRequest) {
   try {
     const body = await request.json();
     const { qrData, eventId, attendanceDate } = body;
+    const scannerUserId = request.user?.id;
 
     if (!qrData || !eventId) {
       return NextResponse.json(
@@ -28,8 +30,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark attendance with optional date
-    const result = await markAttendance(participantId, eventId, attendanceDate);
+    // Mark attendance with optional date and scanner user ID
+    const result = await markAttendance(participantId, eventId, attendanceDate, scannerUserId);
 
     if (result.success) {
       return NextResponse.json({
@@ -52,6 +54,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export const POST = requireAuth(handlePostAttendance);
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // Import the function here to avoid circular dependencies
     const { getAttendanceByEventId } = await import('@/lib/actions');
-    
+
     const attendance = await getAttendanceByEventId(eventId, attendanceDate || undefined);
 
     return NextResponse.json({

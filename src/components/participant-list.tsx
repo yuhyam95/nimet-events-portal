@@ -13,12 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -59,12 +59,12 @@ export function ParticipantList({
     direction: "ascending" | "descending";
   } | null>(null);
   const [sortOrder, setSortOrder] = React.useState<"ascending" | "descending">("ascending");
-  
+
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedParticipant, setSelectedParticipant] = React.useState<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) | null>(null);
   const [generatedFlyer, setGeneratedFlyer] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  
+
   const [isQRDialogOpen, setIsQRDialogOpen] = React.useState(false);
   const [selectedQRParticipant, setSelectedQRParticipant] = React.useState<(Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) | null>(null);
   const [generatedQRCode, setGeneratedQRCode] = React.useState<string | null>(null);
@@ -116,7 +116,7 @@ export function ParticipantList({
     const headers = [
       "S/N",
       "Name",
-      "Organization", 
+      "Organization",
       "Position",
       "Contact",
       "Phone"
@@ -156,7 +156,7 @@ export function ParticipantList({
     setIsQRDialogOpen(true);
     setIsQRLoading(true);
     setGeneratedQRCode(null);
-    
+
     try {
       const qrCodeDataURL = await generateQRCode(participant.id);
       setGeneratedQRCode(qrCodeDataURL);
@@ -179,10 +179,10 @@ export function ParticipantList({
       const result = await sendQRCodeToParticipant(participant.id, participant.eventId);
       if (result.success) {
         // Update the participant's qrEmailSent status locally
-        setParticipants(prev => prev.map(p => 
+        setParticipants(prev => prev.map(p =>
           p.id === participant.id ? { ...p, qrEmailSent: true } : p
         ));
-        
+
         toast({
           title: "Email Sent",
           description: `QR code sent to ${participant.contact}`,
@@ -216,7 +216,7 @@ export function ParticipantList({
     }
 
     const selectedParticipantsList = participants.filter(p => selectedParticipants.has(p.id));
-    
+
     // Initialize progress
     setQrProgress({
       total: selectedParticipantsList.length,
@@ -225,7 +225,7 @@ export function ParticipantList({
       current: "",
       errors: []
     });
-    
+
     // Show progress dialog
     setShowQRProgressDialog(true);
     setIsBulkEmailLoading(true);
@@ -237,7 +237,7 @@ export function ParticipantList({
 
       for (let i = 0; i < selectedParticipantsList.length; i++) {
         const participant = selectedParticipantsList[i];
-        
+
         // Update current participant being processed
         setQrProgress(prev => ({
           ...prev,
@@ -253,9 +253,9 @@ export function ParticipantList({
               sent: sent,
               current: `✓ QR code sent to ${participant.name}`
             }));
-            
+
             // Update participant's qrEmailSent status locally
-            setParticipants(prev => prev.map(p => 
+            setParticipants(prev => prev.map(p =>
               p.id === participant.id ? { ...p, qrEmailSent: true } : p
             ));
           } else {
@@ -312,7 +312,7 @@ export function ParticipantList({
         ...prev,
         current: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
-      
+
       setTimeout(() => {
         toast({
           title: "Error",
@@ -387,7 +387,7 @@ export function ParticipantList({
     }
 
     const selectedParticipantsList = participants.filter(p => selectedParticipants.has(p.id));
-    
+
     // Initialize progress
     setEmailProgress({
       total: selectedParticipantsList.length,
@@ -396,7 +396,7 @@ export function ParticipantList({
       current: "",
       errors: []
     });
-    
+
     // Close the follow-up dialog and show progress dialog
     setShowFollowUpDialog(false);
     setShowProgressDialog(true);
@@ -409,7 +409,7 @@ export function ParticipantList({
 
       for (let i = 0; i < selectedParticipantsList.length; i++) {
         const participant = selectedParticipantsList[i];
-        
+
         // Update current participant being processed
         setEmailProgress(prev => ({
           ...prev,
@@ -482,7 +482,7 @@ export function ParticipantList({
         ...prev,
         current: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
-      
+
       setTimeout(() => {
         toast({
           title: "Error",
@@ -503,7 +503,7 @@ export function ParticipantList({
         // For Position column, use position for internal events and designation for external events
         let aValue: string;
         let bValue: string;
-        
+
         if (sortConfig.key === "designation") {
           aValue = (a.isInternal ? a.position : a.designation) ?? '';
           bValue = (b.isInternal ? b.position : b.designation) ?? '';
@@ -511,7 +511,7 @@ export function ParticipantList({
           aValue = a[sortConfig.key] ?? '';
           bValue = b[sortConfig.key] ?? '';
         }
-        
+
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
         }
@@ -535,29 +535,29 @@ export function ParticipantList({
     setIsLoading(true);
     setGeneratedFlyer(null);
     try {
-        // Format the event date
-        const formattedDate = formatEventDate(participant.eventStartDate);
-        const formattedEndDate = formatEventDate(participant.eventEndDate);
-        
-        const flyerDataUrl = await generateFlyer({
-            eventName: participant.eventName,
-            eventTheme: participant.eventTheme,
-            eventStartDate: formattedDate,
-            eventEndDate: formattedEndDate,
-            eventLocation: participant.eventLocation,
-            participantName: participant.name,
-        });
-        setGeneratedFlyer(flyerDataUrl);
-    } catch(error) {
-        console.error("Failed to generate flyer:", error);
-        toast({
-            variant: "destructive",
-            title: "Generation Failed",
-            description: "Could not generate the participant flyer. Please try again."
-        })
-        setIsDialogOpen(false);
+      // Format the event date
+      const formattedDate = formatEventDate(participant.eventStartDate);
+      const formattedEndDate = formatEventDate(participant.eventEndDate);
+
+      const flyerDataUrl = await generateFlyer({
+        eventName: participant.eventName,
+        eventTheme: participant.eventTheme,
+        eventStartDate: formattedDate,
+        eventEndDate: formattedEndDate,
+        eventLocation: participant.eventLocation,
+        participantName: participant.name,
+      });
+      setGeneratedFlyer(flyerDataUrl);
+    } catch (error) {
+      console.error("Failed to generate flyer:", error);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Could not generate the participant flyer. Please try again."
+      })
+      setIsDialogOpen(false);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -586,18 +586,18 @@ export function ParticipantList({
 
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
     <TableHead className="bg-green-50">
-        <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
+      <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
         {children}
         {sortConfig?.key === sortKey ? (
-            sortConfig.direction === "ascending" ? (
+          sortConfig.direction === "ascending" ? (
             <ChevronUp className="ml-2 h-4 w-4" />
-            ) : (
+          ) : (
             <ChevronDown className="ml-2 h-4 w-4" />
-            )
+          )
         ) : (
-            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+          <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
         )}
-        </Button>
+      </Button>
     </TableHead>
   );
 
@@ -613,7 +613,7 @@ export function ParticipantList({
                 onChange={() => handleSelectParticipant(participant.id)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-            <CardTitle>{participant.name}</CardTitle>
+              <CardTitle>{participant.name}</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -623,7 +623,9 @@ export function ParticipantList({
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Position: </span>
-              {participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}
+              {participant.isInternal
+                ? (participant.position || participant.designation || "-")
+                : (participant.designation || participant.position || "-")}
             </p>
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Contact: </span>
@@ -634,15 +636,15 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex flex-col gap-2 mt-4">
-            <Button
-              variant="default"
-              size="sm"
+              <Button
+                variant="default"
+                size="sm"
                 className="flex-1 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
-              onClick={() => handleGenerateTag(participant)}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate Flyer
-            </Button>
+                onClick={() => handleGenerateTag(participant)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Flyer
+              </Button>
               <Button
                 variant="default"
                 size="sm"
@@ -670,79 +672,83 @@ export function ParticipantList({
   );
 
   const renderDesktopTable = () => (
-      <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-full">
-          <TableHeader>
-            <TableRow className="bg-green-50">
-              <TableHead className="bg-green-50">
-                <input
-                  type="checkbox"
-                  checked={selectedParticipants.size === sortedAndFilteredParticipants.length && sortedAndFilteredParticipants.length > 0}
-                  onChange={handleSelectAll}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-              </TableHead>
-              <TableHead className="bg-green-50">S/N</TableHead>
-              <SortableHeader sortKey="name">Name</SortableHeader>
-              <SortableHeader sortKey="organization">Organization</SortableHeader>
-              <SortableHeader sortKey="designation">Position</SortableHeader>
-              <SortableHeader sortKey="contact">Contact</SortableHeader>
-              <SortableHeader sortKey="phone">Phone</SortableHeader>
-              <TableHead className="bg-green-50">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedAndFilteredParticipants.length > 0 ? (
-              sortedAndFilteredParticipants.map((participant, index) => (
-                <TableRow key={participant.id} className={selectedParticipants.has(participant.id) ? "bg-blue-50" : ""}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedParticipants.has(participant.id)}
-                      onChange={() => handleSelectParticipant(participant.id)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
-                  <TableCell className="font-medium">{participant.name}</TableCell>
-                  <TableCell>{participant.isInternal ? "NiMet" : (participant.organization || "-")}</TableCell>
-                  <TableCell>{participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}</TableCell>
-                  <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
-                  <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-2">
-                      <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateTag(participant)}>
+    <div className="rounded-md border overflow-x-auto">
+      <Table className="min-w-full">
+        <TableHeader>
+          <TableRow className="bg-green-50">
+            <TableHead className="bg-green-50">
+              <input
+                type="checkbox"
+                checked={selectedParticipants.size === sortedAndFilteredParticipants.length && sortedAndFilteredParticipants.length > 0}
+                onChange={handleSelectAll}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+            </TableHead>
+            <TableHead className="bg-green-50">S/N</TableHead>
+            <SortableHeader sortKey="name">Name</SortableHeader>
+            <SortableHeader sortKey="organization">Organization</SortableHeader>
+            <SortableHeader sortKey="designation">Position</SortableHeader>
+            <SortableHeader sortKey="contact">Contact</SortableHeader>
+            <SortableHeader sortKey="phone">Phone</SortableHeader>
+            <TableHead className="bg-green-50">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedAndFilteredParticipants.length > 0 ? (
+            sortedAndFilteredParticipants.map((participant, index) => (
+              <TableRow key={participant.id} className={selectedParticipants.has(participant.id) ? "bg-blue-50" : ""}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedParticipants.has(participant.id)}
+                    onChange={() => handleSelectParticipant(participant.id)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </TableCell>
+                <TableCell className="font-medium">{index + 1}</TableCell>
+                <TableCell className="font-medium">{participant.name}</TableCell>
+                <TableCell>{participant.isInternal ? "NiMet" : (participant.organization || "-")}</TableCell>
+                <TableCell>
+                  {participant.isInternal
+                    ? (participant.position || participant.designation || "-")
+                    : (participant.designation || participant.position || "-")}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
+                <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateTag(participant)}>
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generate Flyer
                     </Button>
-                      <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateQRCode(participant)}>
-                        <QrCode className="mr-2 h-4 w-4" />
-                        QR Code
-                      </Button>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => handleSendQRCodeEmail(participant)}
-                        disabled={isEmailLoading}
-                      >
-                        <Mail className="mr-2 h-4 w-4" />
-                        {isEmailLoading ? "..." : participant.qrEmailSent ? "Resend QR Code" : "Email QR Code"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                  No results found.
+                    <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateQRCode(participant)}>
+                      <QrCode className="mr-2 h-4 w-4" />
+                      QR Code
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleSendQRCodeEmail(participant)}
+                      disabled={isEmailLoading}
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      {isEmailLoading ? "..." : participant.qrEmailSent ? "Resend QR Code" : "Email QR Code"}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={8} className="h-24 text-center">
+                No results found.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 
   return (
@@ -778,7 +784,7 @@ export function ParticipantList({
           </span>
         </div>
       </div>
-      
+
       {/* Action buttons - horizontal row on both mobile and desktop */}
       <div className="flex items-center gap-2 py-4 overflow-x-auto">
         <Button
@@ -829,7 +835,7 @@ export function ParticipantList({
           {isBulkFollowUpLoading ? "Sending..." : `Send Thank You Email (${selectedParticipants.size})`}
         </Button>
       </div>
-      
+
       {/* Desktop search bar - hidden on mobile */}
       <div className="hidden md:block py-4">
         <div className="flex items-center gap-4">
@@ -855,54 +861,54 @@ export function ParticipantList({
           </span>
         </div>
       </div>
-     
+
       {isMobile ? renderMobileList() : renderDesktopTable()}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="text-accent" />
-                Generated Flyer for {selectedParticipant?.name}
+              <Sparkles className="text-accent" />
+              Generated Flyer for {selectedParticipant?.name}
             </DialogTitle>
             <DialogDescription>
-                A personalized flyer for the participant with event details.
+              A personalized flyer for the participant with event details.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
             {isLoading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-96 w-full" />
-                </div>
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-96 w-full" />
+              </div>
             ) : generatedFlyer && (
-                <>
-                    <div>
-                        <h3 className="font-semibold mb-2">Flyer Preview</h3>
-                        <div className="border rounded-lg p-4 bg-background text-center shadow-md">
-                            <img 
-                                src={generatedFlyer} 
-                                alt="Generated Flyer" 
-                                className="w-full h-auto max-h-96 object-contain mx-auto"
-                            />
-                        </div>
-                    </div>
-                </>
+              <>
+                <div>
+                  <h3 className="font-semibold mb-2">Flyer Preview</h3>
+                  <div className="border rounded-lg p-4 bg-background text-center shadow-md">
+                    <img
+                      src={generatedFlyer}
+                      alt="Generated Flyer"
+                      className="w-full h-auto max-h-96 object-contain mx-auto"
+                    />
+                  </div>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
-            <Button 
-                variant="default" 
-                onClick={() => {
-                    if (generatedFlyer && selectedParticipant) {
-                        downloadFlyer(generatedFlyer, `${selectedParticipant.name}-flyer.png`);
-                    }
-                }}
-                disabled={!generatedFlyer}
-                className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            <Button
+              variant="default"
+              onClick={() => {
+                if (generatedFlyer && selectedParticipant) {
+                  downloadFlyer(generatedFlyer, `${selectedParticipant.name}-flyer.png`);
+                }
+              }}
+              disabled={!generatedFlyer}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <Printer className="mr-2 h-4 w-4" />
-                Download PNG
+              <Printer className="mr-2 h-4 w-4" />
+              Download PNG
             </Button>
             <Button onClick={() => setIsDialogOpen(false)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">Close</Button>
           </DialogFooter>
@@ -913,51 +919,51 @@ export function ParticipantList({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-                <QrCode className="text-accent" />
-                QR Code for {selectedQRParticipant?.name}
+              <QrCode className="text-accent" />
+              QR Code for {selectedQRParticipant?.name}
             </DialogTitle>
             <DialogDescription>
-                Scan this QR code to mark attendance for this participant.
+              Scan this QR code to mark attendance for this participant.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-6">
             {isQRLoading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-64 w-64 mx-auto" />
-                </div>
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-64 w-64 mx-auto" />
+              </div>
             ) : generatedQRCode && (
-                <>
-                    <div>
-                        <h3 className="font-semibold mb-2">QR Code</h3>
-                        <div className="border rounded-lg p-4 bg-background text-center shadow-md">
-                            <img 
-                                src={generatedQRCode} 
-                                alt="QR Code" 
-                                className="w-64 h-64 mx-auto"
-                            />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2 text-center">
-                          Participant: {selectedQRParticipant?.name}<br/>
-                          Organization: {selectedQRParticipant?.isInternal ? "NiMet" : (selectedQRParticipant?.organization || "-")}
-                        </p>
-                    </div>
-                </>
+              <>
+                <div>
+                  <h3 className="font-semibold mb-2">QR Code</h3>
+                  <div className="border rounded-lg p-4 bg-background text-center shadow-md">
+                    <img
+                      src={generatedQRCode}
+                      alt="QR Code"
+                      className="w-64 h-64 mx-auto"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                    Participant: {selectedQRParticipant?.name}<br />
+                    Organization: {selectedQRParticipant?.isInternal ? "NiMet" : (selectedQRParticipant?.organization || "-")}
+                  </p>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
-            <Button 
-                variant="default" 
-                onClick={() => {
-                    if (generatedQRCode && selectedQRParticipant) {
-                        downloadQRCode(generatedQRCode, `${selectedQRParticipant.name}-qr-code.png`);
-                    }
-                }}
-                disabled={!generatedQRCode}
-                className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            <Button
+              variant="default"
+              onClick={() => {
+                if (generatedQRCode && selectedQRParticipant) {
+                  downloadQRCode(generatedQRCode, `${selectedQRParticipant.name}-qr-code.png`);
+                }
+              }}
+              disabled={!generatedQRCode}
+              className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <Download className="mr-2 h-4 w-4" />
-                Download PNG
+              <Download className="mr-2 h-4 w-4" />
+              Download PNG
             </Button>
             <Button onClick={() => setIsQRDialogOpen(false)} className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">Close</Button>
           </DialogFooter>
@@ -1030,8 +1036,8 @@ export function ParticipantList({
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               onClick={() => {
                 setFollowUpMessage("");
                 setSurveyLink("");
@@ -1043,7 +1049,7 @@ export function ParticipantList({
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleSendFollowUpToSelected}
               disabled={isBulkFollowUpLoading}
               className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1054,7 +1060,7 @@ export function ParticipantList({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showProgressDialog} onOpenChange={() => {}}>
+      <Dialog open={showProgressDialog} onOpenChange={() => { }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1071,12 +1077,12 @@ export function ParticipantList({
                 <span>Progress</span>
                 <span>{emailProgress.sent + emailProgress.failed} of {emailProgress.total}</span>
               </div>
-              <Progress 
-                value={emailProgress.total > 0 ? ((emailProgress.sent + emailProgress.failed) / emailProgress.total) * 100 : 0} 
+              <Progress
+                value={emailProgress.total > 0 ? ((emailProgress.sent + emailProgress.failed) / emailProgress.total) * 100 : 0}
                 className="w-full"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -1108,8 +1114,8 @@ export function ParticipantList({
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               onClick={() => setShowProgressDialog(false)}
               disabled={emailProgress.sent + emailProgress.failed < emailProgress.total}
               className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1120,7 +1126,7 @@ export function ParticipantList({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showQRProgressDialog} onOpenChange={() => {}}>
+      <Dialog open={showQRProgressDialog} onOpenChange={() => { }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1137,12 +1143,12 @@ export function ParticipantList({
                 <span>Progress</span>
                 <span>{qrProgress.sent + qrProgress.failed} of {qrProgress.total}</span>
               </div>
-              <Progress 
-                value={qrProgress.total > 0 ? ((qrProgress.sent + qrProgress.failed) / qrProgress.total) * 100 : 0} 
+              <Progress
+                value={qrProgress.total > 0 ? ((qrProgress.sent + qrProgress.failed) / qrProgress.total) * 100 : 0}
                 className="w-full"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -1174,8 +1180,8 @@ export function ParticipantList({
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               onClick={() => setShowQRProgressDialog(false)}
               disabled={qrProgress.sent + qrProgress.failed < qrProgress.total}
               className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
