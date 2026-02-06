@@ -1144,12 +1144,12 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
         checkedInAt: a.checkedInAt,
         attendanceDate: a.attendanceDate || new Date(a.checkedInAt).toISOString().split('T')[0],
         participantName: participant?.name || "Unknown",
-        participantOrganization: isInternalEvent
-          ? "NiMet"
-          : (participant?.organization || "Unknown"),
-        participantPosition: isInternalEvent
-          ? (participant?.position || participant?.designation || "")
-          : (participant?.designation || participant?.position || ""),
+        participantOrganization: (participant?.organization && participant.organization.trim() !== "")
+          ? participant.organization
+          : (isInternalEvent ? "NiMet" : "Unknown"),
+        participantPosition: (participant?.position && participant.position.trim() !== "")
+          ? participant.position
+          : (participant?.designation || ""),
         signedBy: signedByName
       };
     });

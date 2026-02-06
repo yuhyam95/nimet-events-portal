@@ -5,7 +5,8 @@ import { addParticipant, markAttendance } from '@/lib/actions';
 async function handleOnboardParticipant(request: AuthenticatedRequest) {
     try {
         const body = await request.json();
-        const { firstName, lastName, email, organization, phone, eventId } = body;
+        console.log("Mobile onboard request body:", body);
+        const { firstName, lastName, email, organization, phone, position, designation, eventId } = body;
 
         // Get the logged-in user (staff) ID from the authenticated request
         const staffId = request.user?.id;
@@ -25,6 +26,8 @@ async function handleOnboardParticipant(request: AuthenticatedRequest) {
             contact: email, // Map email to contact
             phone,
             organization,
+            position: position || "",
+            designation: designation || "",
             eventId,
             skipDuplicateCheck: true, // Allow multiple registrations with same email/phone for staff-assisted onboarding
             onboardedBy: staffId,
