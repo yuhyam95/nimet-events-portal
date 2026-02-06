@@ -79,6 +79,7 @@ export function AttendanceList({
       "Participant Name",
       "Organization",
       "Position",
+      "Media",
       "Attendance Date",
       "Checked In At",
       "Signed By"
@@ -92,6 +93,7 @@ export function AttendanceList({
         `"${record.participantName}"`,
         `"${record.participantOrganization}"`,
         `"${record.participantPosition || ''}"`,
+        `"${record.isMediaPersonnel ? "Yes" : "No"}"`,
         `"${record.attendanceDate}"`,
         `"${format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}"`,
         `"${record.signedBy || ''}"`
@@ -145,6 +147,13 @@ export function AttendanceList({
               <span className="font-semibold">Position: </span>
               {record.participantPosition || '-'}
             </p>
+            {record.isMediaPersonnel && (
+              <p className="text-sm">
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                  Media Personnel
+                </span>
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Attendance Date: </span>
               {record.attendanceDate}
@@ -174,6 +183,7 @@ export function AttendanceList({
             <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
             <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
             <SortableHeader sortKey="participantPosition">Position</SortableHeader>
+            <TableHead className="bg-green-50">Media</TableHead>
             <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
             <SortableHeader sortKey="checkedInAt">Checked In At</SortableHeader>
             <SortableHeader sortKey="signedBy">Signed By</SortableHeader>
@@ -190,6 +200,13 @@ export function AttendanceList({
                 </TableCell>
                 <TableCell>{record.participantOrganization}</TableCell>
                 <TableCell>{record.participantPosition || '-'}</TableCell>
+                <TableCell>
+                  {record.isMediaPersonnel ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                      Yes
+                    </span>
+                  ) : "-"}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {record.attendanceDate}
                 </TableCell>
@@ -203,7 +220,7 @@ export function AttendanceList({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No attendance records found.
               </TableCell>
             </TableRow>

@@ -118,6 +118,7 @@ export function ParticipantList({
       "Name",
       "Organization",
       "Position",
+      "Media",
       "Contact",
       "Phone"
     ];
@@ -130,6 +131,7 @@ export function ParticipantList({
         `"${participant.name}"`,
         `"${participant.isInternal ? "NiMet" : (participant.organization || "-")}"`,
         `"${participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}"`,
+        `"${participant.isMediaPersonnel ? "Yes" : "No"}"`,
         `"${participant.contact}"`,
         `"${participant.phone}"`
       ].join(","))
@@ -627,6 +629,13 @@ export function ParticipantList({
                 ? (participant.position || participant.designation || "-")
                 : (participant.designation || participant.position || "-")}
             </p>
+            {participant.isMediaPersonnel && (
+              <p className="text-sm">
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                  Media Personnel
+                </span>
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Contact: </span>
               {participant.contact}
@@ -688,6 +697,7 @@ export function ParticipantList({
             <SortableHeader sortKey="name">Name</SortableHeader>
             <SortableHeader sortKey="organization">Organization</SortableHeader>
             <SortableHeader sortKey="designation">Position</SortableHeader>
+            <TableHead className="bg-green-50">Media</TableHead>
             <SortableHeader sortKey="contact">Contact</SortableHeader>
             <SortableHeader sortKey="phone">Phone</SortableHeader>
             <TableHead className="bg-green-50">Actions</TableHead>
@@ -712,6 +722,13 @@ export function ParticipantList({
                   {participant.isInternal
                     ? (participant.position || participant.designation || "-")
                     : (participant.designation || participant.position || "-")}
+                </TableCell>
+                <TableCell>
+                  {participant.isMediaPersonnel ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                      Yes
+                    </span>
+                  ) : "-"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{participant.contact}</TableCell>
                 <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
@@ -741,7 +758,7 @@ export function ParticipantList({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 No results found.
               </TableCell>
             </TableRow>

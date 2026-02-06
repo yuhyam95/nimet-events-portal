@@ -30,6 +30,7 @@ export interface Participant {
   qrEmailSent?: boolean;
   onboardedBy?: string; // ID of the staff who onboarded this participant
   onboardingDate?: string; // Date when manual onboarding happened
+  isMediaPersonnel?: boolean; // Whether the participant is a media personnel
 }
 
 export interface Attendance {
@@ -43,6 +44,7 @@ export interface Attendance {
   checkedInBy?: string; // ID of the staff who scanned the QR
   signedBy?: string; // Name of the user who onboarded the participant or 'Self'
   participantPosition?: string; // Position or designation of the participant
+  isMediaPersonnel?: boolean; // Whether the participant is a media personnel
 }
 
 export interface User {

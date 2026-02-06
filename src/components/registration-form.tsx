@@ -14,9 +14,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { addParticipant } from "@/lib/actions";
+import { addParticipant, markAttendance } from "@/lib/actions";
 import type { Event } from "@/lib/types";
 
 const formSchema = z.object({
@@ -33,9 +34,18 @@ const formSchema = z.object({
   phone: z.string().min(11, {
     message: "Please enter a valid phone number.",
   }),
+  isMediaPersonnel: z.boolean().default(false).optional(),
 });
 
-export function RegistrationForm({ eventId, event }: { eventId: string; event?: Event }) {
+export function RegistrationForm({
+  eventId,
+  event,
+  onSuccessfulOnboarding,
+}: {
+  eventId: string;
+  event?: Event;
+  onSuccessfulOnboarding?: () => void;
+}) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -49,6 +59,7 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
       position: "",
       contact: "",
       phone: "",
+      isMediaPersonnel: false,
     },
   });
 
@@ -58,15 +69,37 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
       ...values,
       contact: values.contact.toLowerCase().trim()
     };
-    const result = await addParticipant({ ...normalizedValues, eventId });
-    
+    const result = await addParticipant({
+      ...normalizedValues,
+      eventId,
+      skipDuplicateCheck: !!onSuccessfulOnboarding
+    });
+
     if (result.success) {
+      if (onSuccessfulOnboarding) {
+        if (result.participantId) {
+          try {
+            await markAttendance(result.participantId, eventId, new Date().toISOString().split('T')[0], "Admin");
+          } catch (e) {
+            console.error("Failed to auto-mark attendance", e);
+          }
+        }
+
+        toast({
+          title: "Onboarding Successful",
+          description: "Participant has been successfully onboarded and attendance marked.",
+        });
+        form.reset();
+        onSuccessfulOnboarding();
+        return;
+      }
+
       // Redirect to success page with event and participant data
       const successUrl = `/register/success?eventId=${eventId}&participantId=${result.participantId || 'new'}`;
       router.push(successUrl);
     } else {
       const errorMessage = result.error || "Could not complete your registration. Please try again.";
-      
+
       // Check for specific duplicate errors and provide user-friendly messages
       if (errorMessage.includes("email address has already registered")) {
         toast({
@@ -106,7 +139,7 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="phone"
@@ -127,7 +160,7 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="contact"
@@ -174,6 +207,29 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="isMediaPersonnel"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Check this if you are a Media Personnel
+                    </FormLabel>
+                    {/* <FormDescription>
+                      Check this if you are attending as a member of the press or media.
+                    </FormDescription> */}
+                  </div>
+                </FormItem>
+              )}
+            />
           </>
         )}
 
@@ -208,9 +264,9 @@ export function RegistrationForm({ eventId, event }: { eventId: string; event?: 
             />
           </>
         )}
-        
+
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Registering..." : "Register"}
+          {form.formState.isSubmitting ? "Registering..." : "Register"}
         </Button>
       </form>
     </Form>

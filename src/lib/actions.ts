@@ -21,6 +21,7 @@ const ParticipantSchema = z.object({
   onboardedBy: z.string().optional(),
   onboardingDate: z.string().optional(),
   skipDuplicateCheck: z.boolean().optional(),
+  isMediaPersonnel: z.boolean().optional(),
 });
 
 const EventSchema = z.object({
@@ -400,7 +401,8 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         eventLocation: event.location,
         isInternal: event.isInternal,
         onboardedBy: p.onboardedBy,
-        onboardingDate: p.onboardingDate
+        onboardingDate: p.onboardingDate,
+        isMediaPersonnel: p.isMediaPersonnel
       };
     });
   } catch (error) {
@@ -446,7 +448,8 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       eventLocation: eventLocation,
       isInternal: isInternal,
       onboardedBy: p.onboardedBy,
-      onboardingDate: p.onboardingDate
+      onboardingDate: p.onboardingDate,
+      isMediaPersonnel: p.isMediaPersonnel
     }));
   } catch (error) {
     console.error("Error fetching participants for event:", error);
@@ -1005,7 +1008,7 @@ export async function canUserTakeAttendance(eventId: string, userId: string): Pr
 
 
 // Attendance functions
-export async function markAttendance(participantId: string, eventId: string, attendanceDate?: string, userId?: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
+export async function markAttendance(participantId: string, eventId: string, attendanceDate?: string, signedBy?: string): Promise<{ success: boolean; error?: string; attendance?: Attendance }> {
   console.log('markAttendance called with participantId:', participantId, 'eventId:', eventId, 'attendanceDate:', attendanceDate);
   console.log('participantId isValid:', ObjectId.isValid(participantId));
   console.log('eventId isValid:', ObjectId.isValid(eventId));
@@ -1015,9 +1018,9 @@ export async function markAttendance(participantId: string, eventId: string, att
     return { success: false, error: "Invalid participant or event ID" };
   }
 
-  // Check if user has permission to take attendance (if userId is provided)
-  if (userId) {
-    const hasPermission = await canUserTakeAttendance(eventId, userId);
+  // Check if user has permission to take attendance (if signedBy is provided and is a valid ID)
+  if (signedBy && ObjectId.isValid(signedBy)) {
+    const hasPermission = await canUserTakeAttendance(eventId, signedBy);
     if (!hasPermission) {
       return { success: false, error: "You are not authorized to take attendance for this event" };
     }
@@ -1068,7 +1071,8 @@ export async function markAttendance(participantId: string, eventId: string, att
       participantId: new ObjectId(participantId),
       eventId: new ObjectId(eventId),
       checkedInAt: now,
-      attendanceDate: dateToUse
+      attendanceDate: dateToUse,
+      signedBy: signedBy || "Admin"
     };
 
     const result = await db.collection("attendance").insertOne(attendanceData);
@@ -1082,7 +1086,8 @@ export async function markAttendance(participantId: string, eventId: string, att
         checkedInAt: now,
         attendanceDate: dateToUse,
         participantName: participant.name,
-        participantOrganization: participant.organization
+        participantOrganization: participant.organization,
+        signedBy: signedBy || "Admin"
       }
     };
   } catch (error) {
@@ -1150,7 +1155,8 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
         participantPosition: (participant?.position && participant.position.trim() !== "")
           ? participant.position
           : (participant?.designation || ""),
-        signedBy: signedByName
+        signedBy: signedByName,
+        isMediaPersonnel: participant?.isMediaPersonnel || false
       };
     });
   } catch (error) {

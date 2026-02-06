@@ -6,6 +6,7 @@ import { ArrowLeft, Users, CheckCircle, XCircle, Calendar, TrendingUp } from "lu
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DayByDayAttendance } from "@/components/day-by-day-attendance";
+import { AdminOnboardingModal } from "@/components/admin-onboarding-modal";
 
 interface EventAttendancePageProps {
   params: Promise<{
@@ -15,12 +16,12 @@ interface EventAttendancePageProps {
 
 export default async function EventAttendancePage({ params }: EventAttendancePageProps) {
   const { eventId } = await params;
-  
+
   const event = await getEventById(eventId);
   if (!event) {
     notFound();
   }
-  
+
   const [attendance, stats, statsByDate] = await Promise.all([
     getAttendanceByEventId(eventId),
     getAttendanceStats(eventId),
@@ -29,26 +30,31 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="default" size="sm" asChild className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">
-          <Link href="/admin/events">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Events
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Event Attendance</h1>
-          <p className="text-muted-foreground mt-1">{event.name}</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="default" size="sm" asChild className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium shrink-0">
+            <Link href="/admin/events">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Link>
+          </Button>
+          <div className="min-w-0 overflow-hidden">
+            <h1 className="text-2xl md:text-3xl font-bold font-headline truncate">Event Attendance</h1>
+            <p className="text-muted-foreground mt-1 truncate">{event.name}</p>
+          </div>
+        </div>
+        <div className="w-full md:w-auto">
+          <AdminOnboardingModal event={event} />
         </div>
       </div>
-      
+
       <CardTitle className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-4 w-4" />
-            Overall Event Statistics
+        <TrendingUp className="h-4 w-4" />
+        Overall Event Statistics
       </CardTitle>
       {/* Attendance Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      
+
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-800">Total Participants</CardTitle>
@@ -61,7 +67,7 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-green-50 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-green-800">Present</CardTitle>
@@ -78,7 +84,7 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-red-50 border-red-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-red-800">Absent</CardTitle>
@@ -96,7 +102,7 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Overall Event Statistics */}
       {/* <Card className="mb-6">
         <CardHeader>
@@ -128,16 +134,16 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
           </div>
         </CardContent>
       </Card> */}
-      
+
       {/* Day-by-Day Attendance Overview */}
-      <DayByDayAttendance 
+      <DayByDayAttendance
         eventId={eventId}
         eventName={event.name}
         eventStartDate={event.startDate}
         eventEndDate={event.endDate}
         initialStatsByDate={statsByDate}
       />
-      
+
       {/* <AttendanceList initialAttendance={attendance} eventName={event.name} /> */}
     </div>
   );
