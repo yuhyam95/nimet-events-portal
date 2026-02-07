@@ -72,7 +72,8 @@ export function RegistrationForm({
     const result = await addParticipant({
       ...normalizedValues,
       eventId,
-      skipDuplicateCheck: !!onSuccessfulOnboarding
+      skipDuplicateCheck: !!onSuccessfulOnboarding,
+      onboardedBy: !!onSuccessfulOnboarding ? "Admin" : undefined,
     });
 
     if (result.success) {

@@ -503,58 +503,60 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       eventId: new ObjectId(eventId)
     });
 
-    // Send attendance QR code email
-    try {
-      // Get event details for the email
-      const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
-      if (event) {
-        // Map event data to match Event type
-        const now = new Date();
-        const startDate = new Date(event.startDate || event.date);
-        const endDate = new Date(event.endDate || event.date);
-        const shouldBeActive = now >= startDate && now <= endDate;
-        const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
+    // Send attendance QR code email ONLY if not manually onboarded
+    if (!participantData.onboardedBy) {
+      try {
+        // Get event details for the email
+        const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
+        if (event) {
+          // Map event data to match Event type
+          const now = new Date();
+          const startDate = new Date(event.startDate || event.date);
+          const endDate = new Date(event.endDate || event.date);
+          const shouldBeActive = now >= startDate && now <= endDate;
+          const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
 
-        const mappedEvent: Event = {
-          id: event._id.toString(),
-          name: event.name,
-          slug: event.slug || event._id.toString(),
-          startDate: event.startDate || event.date,
-          endDate: event.endDate || event.date,
-          location: event.location,
-          description: event.description,
-          isActive: isActive,
-          isInternal: event.isInternal ?? false,
-        };
+          const mappedEvent: Event = {
+            id: event._id.toString(),
+            name: event.name,
+            slug: event.slug || event._id.toString(),
+            startDate: event.startDate || event.date,
+            endDate: event.endDate || event.date,
+            location: event.location,
+            description: event.description,
+            isActive: isActive,
+            isInternal: event.isInternal ?? false,
+          };
 
-        // Map participant data to match component format (with id field)
-        const mappedParticipant: Participant = {
-          id: result.insertedId.toString(),
-          name: participantData.name,
-          organization: participantData.organization || "",
-          designation: participantData.designation || "",
-          contact: participantData.contact,
-          phone: participantData.phone || "",
-          eventId: eventId,
-          qrEmailSent: false
-        };
+          // Map participant data to match component format (with id field)
+          const mappedParticipant: Participant = {
+            id: result.insertedId.toString(),
+            name: participantData.name,
+            organization: participantData.organization || "",
+            designation: participantData.designation || "",
+            contact: participantData.contact,
+            phone: participantData.phone || "",
+            eventId: eventId,
+            qrEmailSent: false
+          };
 
-        // Send attendance QR email
-        await sendAttendanceQREmail({
-          participant: mappedParticipant,
-          event: mappedEvent
-        });
+          // Send attendance QR email
+          await sendAttendanceQREmail({
+            participant: mappedParticipant,
+            event: mappedEvent
+          });
 
-        // Mark participant as having received QR code email
-        await db.collection("participants").updateOne(
-          { _id: result.insertedId },
-          { $set: { qrEmailSent: true } }
-        );
+          // Mark participant as having received QR code email
+          await db.collection("participants").updateOne(
+            { _id: result.insertedId },
+            { $set: { qrEmailSent: true } }
+          );
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the registration
+        console.error("Failed to send attendance QR email:", emailError);
+        // Note: We don't throw here to avoid failing the registration if email fails
       }
-    } catch (emailError) {
-      // Log email error but don't fail the registration
-      console.error("Failed to send attendance QR email:", emailError);
-      // Note: We don't throw here to avoid failing the registration if email fails
     }
 
     return { success: true, participantId: result.insertedId.toString() };
