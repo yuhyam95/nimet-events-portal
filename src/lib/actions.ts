@@ -36,6 +36,12 @@ const EventSchema = z.object({
   department: z.string().optional(),
   position: z.string().optional(),
   assignedStaff: z.array(z.string()).optional(),
+  agenda: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    time: z.string().optional(),
+    speaker: z.string().optional()
+  })).optional(),
 });
 
 const UserSchema = z.object({
@@ -136,6 +142,7 @@ export async function getEvents(): Promise<Event[]> {
         department: event.department,
         position: event.position,
         assignedStaff: event.assignedStaff || [],
+        agenda: event.agenda || [],
       };
     }); // Return all events (both active and inactive)
   } catch (error) {
@@ -176,6 +183,7 @@ export async function getActiveEvents(): Promise<Event[]> {
         department: event.department,
         position: event.position,
         assignedStaff: event.assignedStaff || [],
+        agenda: event.agenda || [],
       };
     }).filter(event => event.isActive); // Only return active events
   } catch (error) {
@@ -215,6 +223,7 @@ export async function getEventById(id: string): Promise<Event | null> {
       isInternal: event.isInternal ?? false,
       department: event.department,
       position: event.position,
+      agenda: event.agenda || [],
     };
   } catch (error) {
     console.error(`Error fetching event by id ${id}:`, error);
@@ -250,6 +259,7 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       isInternal: event.isInternal ?? false,
       department: event.department,
       position: event.position,
+      agenda: event.agenda || [],
     };
   } catch (error) {
     console.error(`Error fetching event by slug ${slug}:`, error);
@@ -1539,5 +1549,40 @@ export async function sendFollowUpToAllParticipants(eventId: string, message?: s
   } catch (error) {
     console.error("Error sending follow-up to all participants:", error);
     return { success: false, sent: 0, failed: 0, errors: ["Failed to process bulk follow-up sending"], totalParticipants: 0, batchesProcessed: 0 };
+  }
+}
+
+export async function updateEventAgenda(eventId: string, agenda: unknown) {
+  if (!ObjectId.isValid(eventId)) {
+    throw new Error("Invalid event ID");
+  }
+
+  // Validate agenda schema
+  const agendaSchema = z.array(z.object({
+    id: z.string(),
+    title: z.string().min(1, { message: "Title is required" }),
+    time: z.string().optional(),
+    speaker: z.string().optional()
+  }));
+
+  const validation = agendaSchema.safeParse(agenda);
+  if (!validation.success) {
+    throw new Error("Invalid agenda data");
+  }
+
+  try {
+    const db = await getDb();
+    const result = await db.collection("events").updateOne(
+      { _id: new ObjectId(eventId) },
+      { $set: { agenda: validation.data } }
+    );
+
+    if (result.matchedCount === 0) {
+      throw new Error("Event not found");
+    }
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update event agenda:", error);
+    throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update event agenda.");
   }
 }

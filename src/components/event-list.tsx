@@ -287,6 +287,16 @@ export function EventList() {
                     Manage Staff
                   </Link>
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  asChild
+                >
+                  <Link href={`/admin/events/${event.id}/agenda`}>
+                    Manage Agenda
+                  </Link>
+                </Button>
                 {/* <Button 
                   variant="destructive" 
                   size="sm" 
@@ -375,6 +385,11 @@ export function EventList() {
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/events/${event.id}/staff`}>
                               Manage Staff
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/events/${event.id}/agenda`}>
+                              Manage Agenda
                             </Link>
                           </DropdownMenuItem>
                            <DropdownMenuItem 

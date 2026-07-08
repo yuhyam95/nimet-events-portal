@@ -1,4 +1,11 @@
 
+export interface AgendaItem {
+  id: string;
+  title: string;
+  time?: string;
+  speaker?: string;
+}
+
 export interface Event {
   id: string;
   name: string;
@@ -12,6 +19,7 @@ export interface Event {
   department?: string;
   position?: string;
   assignedStaff?: string[]; // Array of user IDs
+  agenda?: AgendaItem[];
 }
 
 export type NewEvent = Omit<Event, "id">;

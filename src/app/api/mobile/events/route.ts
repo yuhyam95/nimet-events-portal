@@ -20,6 +20,7 @@ async function handleGetEvents(request: NextRequest) {
         isInternal: event.isInternal,
         department: event.department,
         position: event.position,
+        agenda: event.agenda,
       })),
     });
 
