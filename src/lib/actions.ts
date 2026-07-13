@@ -33,10 +33,13 @@ const EventSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().optional(),
   isInternal: z.boolean().optional(),
+<<<<<<< HEAD
   category: z.enum(['internal', 'external', 'meeting']).optional(),
   allowPublicRegistration: z.boolean().optional(),
   isInvitationOnly: z.boolean().optional(),
   invitationCode: z.string().optional(),
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
   department: z.string().optional(),
   position: z.string().optional(),
   assignedStaff: z.array(z.string()).optional(),
@@ -48,6 +51,7 @@ const EventSchema = z.object({
   })).optional(),
 });
 
+<<<<<<< HEAD
 /**
  * Generate a URL-safe slug from an event name
  */
@@ -83,6 +87,8 @@ export async function generateUniqueSlug(name: string, excludeId?: string): Prom
   return slug;
 }
 
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
 const UserSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -168,6 +174,7 @@ export async function getEvents(): Promise<Event[]> {
       // Use stored isActive if it exists, otherwise calculate based on dates
       const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
 
+<<<<<<< HEAD
       // Derive category: use stored value or fall back from isInternal
       const category = event.category || (event.isInternal ? 'internal' : 'external');
 
@@ -177,14 +184,25 @@ export async function getEvents(): Promise<Event[]> {
         slug: event.slug || event._id.toString(),
         startDate: event.startDate || event.date,
         endDate: event.endDate || event.date,
+=======
+      return {
+        id: event._id.toString(),
+        name: event.name,
+        slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+        startDate: event.startDate || event.date, // Handle both old and new field names
+        endDate: event.endDate || event.date, // Handle both old and new field names
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         location: event.location,
         description: event.description,
         isActive: isActive,
         isInternal: event.isInternal ?? false,
+<<<<<<< HEAD
         category,
         allowPublicRegistration: event.allowPublicRegistration ?? false,
         isInvitationOnly: event.isInvitationOnly ?? false,
         invitationCode: event.invitationCode || "",
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         department: event.department,
         position: event.position,
         assignedStaff: event.assignedStaff || [],
@@ -216,6 +234,7 @@ export async function getActiveEvents(): Promise<Event[]> {
       // Use stored isActive if it exists, otherwise calculate based on dates
       const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
 
+<<<<<<< HEAD
       // Derive category: use stored value or fall back from isInternal
       const category = event.category || (event.isInternal ? 'internal' : 'external');
 
@@ -225,14 +244,25 @@ export async function getActiveEvents(): Promise<Event[]> {
         slug: event.slug || event._id.toString(),
         startDate: event.startDate || event.date,
         endDate: event.endDate || event.date,
+=======
+      return {
+        id: event._id.toString(),
+        name: event.name,
+        slug: event.slug || event._id.toString(), // Use slug or fallback to ID
+        startDate: event.startDate || event.date, // Handle both old and new field names
+        endDate: event.endDate || event.date, // Handle both old and new field names
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         location: event.location,
         description: event.description,
         isActive: isActive,
         isInternal: event.isInternal ?? false,
+<<<<<<< HEAD
         category,
         allowPublicRegistration: event.allowPublicRegistration ?? false,
         isInvitationOnly: event.isInvitationOnly ?? false,
         invitationCode: event.invitationCode || "",
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         department: event.department,
         position: event.position,
         assignedStaff: event.assignedStaff || [],
@@ -274,10 +304,13 @@ export async function getEventById(id: string): Promise<Event | null> {
       description: event.description,
       isActive: isActive,
       isInternal: event.isInternal ?? false,
+<<<<<<< HEAD
       category: event.category || (event.isInternal ? 'internal' : 'external'),
       allowPublicRegistration: event.allowPublicRegistration ?? false,
       isInvitationOnly: event.isInvitationOnly ?? false,
       invitationCode: event.invitationCode || "",
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
       department: event.department,
       position: event.position,
       agenda: event.agenda || [],
@@ -314,10 +347,13 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       description: event.description,
       isActive: isActive,
       isInternal: event.isInternal ?? false,
+<<<<<<< HEAD
       category: event.category || (event.isInternal ? 'internal' : 'external'),
       allowPublicRegistration: event.allowPublicRegistration ?? false,
       isInvitationOnly: event.isInvitationOnly ?? false,
       invitationCode: event.invitationCode || "",
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
       department: event.department,
       position: event.position,
       agenda: event.agenda || [],
@@ -349,6 +385,7 @@ export async function addEvent(data: unknown) {
     const endDate = new Date(validation.data.endDate);
     const shouldBeActive = now >= startDate && now <= endDate;
 
+<<<<<<< HEAD
     // Derive isInternal from category if category is provided
     let isInternal = validation.data.isInternal;
     if (validation.data.category) {
@@ -360,6 +397,11 @@ export async function addEvent(data: unknown) {
       isInternal: isInternal ?? false,
       isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive,
       allowPublicRegistration: validation.data.allowPublicRegistration ?? false,
+=======
+    const eventData = {
+      ...validation.data,
+      isActive: validation.data.isActive !== undefined ? validation.data.isActive : shouldBeActive
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
     };
 
     await db.collection("events").insertOne(eventData);

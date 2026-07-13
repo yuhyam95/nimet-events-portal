@@ -36,6 +36,7 @@ export default async function RegisterPage({ params }: { params: Promise<{ event
   if (!event) {
     notFound();
   }
+<<<<<<< HEAD
 
   // If public registration is disabled for this event, show a closed message
   if (event.allowPublicRegistration === false) {
@@ -53,6 +54,8 @@ export default async function RegisterPage({ params }: { params: Promise<{ event
     );
   }
 
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
   return (
     <div className="min-h-screen bg-[#fcfdfd] py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center relative overflow-hidden">
       {/* High-Visibility Geometric Background */}

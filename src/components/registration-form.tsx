@@ -35,7 +35,10 @@ const formSchema = z.object({
     message: "Please enter a valid phone number.",
   }),
   isMediaPersonnel: z.boolean().default(false).optional(),
+<<<<<<< HEAD
   invitationCode: z.string().optional(),
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
 });
 
 export function RegistrationForm({
@@ -61,11 +64,15 @@ export function RegistrationForm({
       contact: "",
       phone: "",
       isMediaPersonnel: false,
+<<<<<<< HEAD
       invitationCode: "",
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+<<<<<<< HEAD
     if (event?.isInvitationOnly && !onSuccessfulOnboarding) {
       if (!values.invitationCode || values.invitationCode.trim() !== event.invitationCode?.trim()) {
         toast({
@@ -77,6 +84,8 @@ export function RegistrationForm({
       }
     }
 
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
     // Normalize email to lowercase
     const normalizedValues = {
       ...values,
@@ -100,8 +109,13 @@ export function RegistrationForm({
         }
 
         toast({
+<<<<<<< HEAD
           title: "Registration Successful",
           description: "Participant has been successfully registered and attendance marked.",
+=======
+          title: "Onboarding Successful",
+          description: "Participant has been successfully onboarded and attendance marked.",
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         });
         form.reset();
         onSuccessfulOnboarding();
@@ -279,6 +293,7 @@ export function RegistrationForm({
           </>
         )}
 
+<<<<<<< HEAD
         {event?.isInvitationOnly && !onSuccessfulOnboarding && (
           <FormField
             control={form.control}
@@ -298,6 +313,8 @@ export function RegistrationForm({
           />
         )}
 
+=======
+>>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Registering..." : "Register"}
         </Button>
