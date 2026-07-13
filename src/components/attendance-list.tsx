@@ -1,0 +1,266 @@
+"use client";
+
+import * as React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ArrowUpDown,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  CheckCircle,
+} from "lucide-react";
+import type { Attendance } from "@/lib/types";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { format, parseISO } from "date-fns";
+
+type SortKey = keyof Attendance;
+
+export function AttendanceList({
+  initialAttendance,
+  eventName,
+}: {
+  initialAttendance: Attendance[];
+  eventName: string;
+}) {
+  const [attendance, setAttendance] = React.useState(initialAttendance);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sortConfig, setSortConfig] = React.useState<{
+    key: SortKey;
+    direction: "ascending" | "descending";
+  } | null>({ key: "checkedInAt", direction: "descending" });
+
+  const isMobile = useIsMobile();
+
+  const handleSort = (key: SortKey) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedAndFilteredAttendance = React.useMemo(() => {
+    let sortableItems = [...attendance];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key] ?? '';
+        const bValue = b[sortConfig.key] ?? '';
+        if (aValue < bValue) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return sortableItems.filter((record) =>
+      Object.values(record).some((value) =>
+        String(value).toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [attendance, searchQuery, sortConfig]);
+
+  const exportToCSV = () => {
+    const headers = [
+      "S/N",
+      "Participant Name",
+      "Organization",
+      "Position",
+      "Media",
+      "Attendance Date",
+      "Checked In At",
+      "Signed By"
+    ];
+
+    const csvContent = [
+      `"${eventName} - Attendance"`,
+      headers.join(","),
+      ...sortedAndFilteredAttendance.map((record, index) => [
+        index + 1,
+        `"${record.participantName}"`,
+        `"${record.participantOrganization}"`,
+        `"${record.participantPosition || ''}"`,
+        `"${record.isMediaPersonnel ? "Yes" : "No"}"`,
+        `"${record.attendanceDate}"`,
+        `"${format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}"`,
+        `"${record.signedBy || ''}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `attendance-${eventName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => (
+    <TableHead className="bg-green-50">
+      <Button variant="ghost" onClick={() => handleSort(sortKey)} className="bg-green-50 hover:bg-green-100">
+        {children}
+        {sortConfig?.key === sortKey ? (
+          sortConfig.direction === "ascending" ? (
+            <ChevronUp className="ml-2 h-4 w-4" />
+          ) : (
+            <ChevronDown className="ml-2 h-4 w-4" />
+          )
+        ) : (
+          <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+        )}
+      </Button>
+    </TableHead>
+  );
+
+  const renderMobileList = () => (
+    <div className="space-y-4">
+      {sortedAndFilteredAttendance.map((record, index) => (
+        <Card key={record.id}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              {record.participantName}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm">
+              <span className="font-semibold">Organization: </span>
+              {record.participantOrganization}
+            </p>
+            <p className="text-sm">
+              <span className="font-semibold">Position: </span>
+              {record.participantPosition || '-'}
+            </p>
+            {record.isMediaPersonnel && (
+              <p className="text-sm">
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                  Media Personnel
+                </span>
+              </p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Attendance Date: </span>
+              {record.attendanceDate}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Checked In: </span>
+              {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
+            </p>
+            {record.signedBy && (
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">Signed By: </span>
+                {record.signedBy}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderDesktopTable = () => (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-green-50">
+            <TableHead className="bg-green-50">S/N</TableHead>
+            <SortableHeader sortKey="participantName">Participant Name</SortableHeader>
+            <SortableHeader sortKey="participantOrganization">Organization</SortableHeader>
+            <SortableHeader sortKey="participantPosition">Position</SortableHeader>
+            <TableHead className="bg-green-50">Media</TableHead>
+            <SortableHeader sortKey="attendanceDate">Attendance Date</SortableHeader>
+            <SortableHeader sortKey="checkedInAt">Checked In At</SortableHeader>
+            <SortableHeader sortKey="signedBy">Signed By</SortableHeader>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedAndFilteredAttendance.length > 0 ? (
+            sortedAndFilteredAttendance.map((record, index) => (
+              <TableRow key={record.id}>
+                <TableCell className="font-medium">{index + 1}</TableCell>
+                <TableCell className="font-medium flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  {record.participantName}
+                </TableCell>
+                <TableCell>{record.participantOrganization}</TableCell>
+                <TableCell>{record.participantPosition || '-'}</TableCell>
+                <TableCell>
+                  {record.isMediaPersonnel ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                      Yes
+                    </span>
+                  ) : "-"}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {record.attendanceDate}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {format(new Date(record.checkedInAt), 'MMM dd, yyyy HH:mm')}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {record.signedBy || '-'}
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={8} className="h-24 text-center">
+                No attendance records found.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+
+  return (
+    <>
+      <div className="mb-6">
+        {/* <h2 className="text-2xl font-bold font-headline">Attendance Records</h2> */}
+        <p className="text-muted-foreground mt-1">
+          {sortedAndFilteredAttendance.length} attendance record{sortedAndFilteredAttendance.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
+      <div className="flex items-center py-4 gap-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search attendance records..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={exportToCSV}
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
+      </div>
+
+      {isMobile ? renderMobileList() : renderDesktopTable()}
+    </>
+  );
+}
