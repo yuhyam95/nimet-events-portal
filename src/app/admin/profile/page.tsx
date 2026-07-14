@@ -11,7 +11,6 @@ import { format, parseISO } from "date-fns";
 import { User, Lock } from "lucide-react";
 
 export default function ProfilePage() {
-<<<<<<< HEAD
   const { user, isLoading } = useAuth();
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -23,11 +22,6 @@ export default function ProfilePage() {
     );
   }
 
-=======
-  const { user } = useAuth();
-  const [showChangePassword, setShowChangePassword] = useState(false);
-
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
   if (!user) {
     return (
       <div className="space-y-6">

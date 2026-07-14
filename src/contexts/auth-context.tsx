@@ -39,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-<<<<<<< HEAD
       const result = await authenticateUser(email, password);
       
       if (result) {
@@ -47,14 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true);
         localStorage.setItem('adminUser', JSON.stringify(result.user));
         localStorage.setItem('adminToken', result.token);
-=======
-      const userData = await authenticateUser(email, password);
-      
-      if (userData) {
-        setUser(userData);
-        setIsAuthenticated(true);
-        localStorage.setItem('adminUser', JSON.stringify(userData));
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         return true;
       }
       return false;
@@ -68,10 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('adminUser');
-<<<<<<< HEAD
     localStorage.removeItem('adminToken');
-=======
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
     
     // Redirect to login page
     router.push('/admin/login');

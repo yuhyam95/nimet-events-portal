@@ -16,13 +16,10 @@ export interface Event {
   description: string;
   isActive: boolean;
   isInternal: boolean;
-<<<<<<< HEAD
   category?: 'internal' | 'external' | 'meeting';
   allowPublicRegistration?: boolean;
   isInvitationOnly?: boolean;
   invitationCode?: string;
-=======
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
   department?: string;
   position?: string;
   assignedStaff?: string[]; // Array of user IDs

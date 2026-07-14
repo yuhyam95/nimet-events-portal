@@ -44,21 +44,13 @@ export function AdminOnboardingModal({ event, trigger }: AdminOnboardingModalPro
                 {trigger || (
                     <Button className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium">
                         <Plus className="h-4 w-4 mr-2" />
-<<<<<<< HEAD
                         Manually Register
-=======
-                        Manually Onboard
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-<<<<<<< HEAD
                     <DialogTitle>Manual Registration</DialogTitle>
-=======
-                    <DialogTitle>Manual Onboarding</DialogTitle>
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
                     <DialogDescription>
                         Register a new participant and automatically mark their attendance.
                     </DialogDescription>

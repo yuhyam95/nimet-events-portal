@@ -26,7 +26,6 @@ import type { Event } from "@/lib/types";
 import { CalendarIcon } from "lucide-react";
 import { format, startOfDay, startOfToday } from "date-fns";
 import { cn } from "@/lib/utils";
-<<<<<<< HEAD
 import {
   Select,
   SelectContent,
@@ -34,14 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-=======
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
 
 const formSchema = z.object({
   name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
   slug: z.string().min(3, { message: "URL slug must be at least 3 characters." }).regex(/^[a-zA-Z0-9-]+$/, { message: "URL slug can only contain letters, numbers, and hyphens." }),
   startDate: z.date({ required_error: "Start date is required." }),
-<<<<<<< HEAD
   startTime: z.string().optional(),
   endDate: z.date({ required_error: "End date is required." }),
   endTime: z.string().optional(),
@@ -51,13 +47,6 @@ const formSchema = z.object({
   category: z.enum(['internal', 'external', 'meeting'], { required_error: "Event category is required." }),
   isInvitationOnly: z.boolean().optional(),
   invitationCode: z.string().optional(),
-=======
-  endDate: z.date({ required_error: "End date is required." }),
-  location: z.string().min(3, { message: "Location must be at least 3 characters." }),
-  theme: z.string().optional(),
-  isActive: z.boolean().optional(),
-  isInternal: z.boolean().optional(),
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
   department: z.string().optional(),
   position: z.string().optional(),
 });
@@ -75,7 +64,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
     defaultValues: {
       name: event?.name || "",
       slug: event?.slug || "",
-<<<<<<< HEAD
       startDate: event?.startDate ? new Date(event.startDate.split('T')[0] + 'T00:00:00') : new Date(),
       startTime: event?.startDate && event.startDate.includes('T') ? event.startDate.split('T')[1].substring(0, 5) : "",
       endDate: event?.endDate ? new Date(event.endDate.split('T')[0] + 'T00:00:00') : new Date(),
@@ -86,14 +74,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
       category: event?.category || (event?.isInternal ? "internal" : "external"),
       isInvitationOnly: event?.isInvitationOnly ?? false,
       invitationCode: event?.invitationCode || "",
-=======
-      startDate: event?.startDate ? new Date(event.startDate + 'T00:00:00') : new Date(),
-      endDate: event?.endDate ? new Date(event.endDate + 'T00:00:00') : new Date(),
-      location: event?.location || "",
-      theme: event?.description || "",
-      isActive: event?.isActive ?? true, // Default to true for new events
-      isInternal: event?.isInternal ?? false, // Default to external for new events
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
       department: event?.department || "",
       position: event?.position || "",
     },
@@ -142,7 +122,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         return `${year}-${month}-${day}`;
       };
 
-<<<<<<< HEAD
       const startStr = formatDateToYYYYMMDD(values.startDate);
       const endStr = formatDateToYYYYMMDD(values.endDate);
 
@@ -153,15 +132,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         description: values.theme || "", // Map theme to description for backend compatibility
         isActive: values.isActive ?? true, // Include active status
         isInternal: values.category !== 'external',
-=======
-      const eventData = {
-        ...values,
-        startDate: formatDateToYYYYMMDD(values.startDate), // Convert start date to string format
-        endDate: formatDateToYYYYMMDD(values.endDate), // Convert end date to string format
-        description: values.theme || "", // Map theme to description for backend compatibility
-        isActive: values.isActive ?? true, // Include active status
-        isInternal: event?.id ? event.isInternal : (values.isInternal ?? false), // Preserve original value when editing, use form value when creating
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         department: values.department || "", // Include department
         position: values.position || "", // Include position
         assignedStaff: event?.assignedStaff || [], // Include assigned staff
@@ -227,7 +197,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
-<<<<<<< HEAD
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -349,96 +318,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             )}
           />
         </div>
-=======
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Start Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a start date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => {
-                      const today = startOfToday();
-                      const cmp = startOfDay(date);
-                      return cmp < today;
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="endDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>End Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick an end date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => {
-                      const startDate = form.getValues("startDate");
-                      const today = startOfToday();
-                      const minDate = startDate ? startOfDay(startDate) : today;
-                      const cmp = startOfDay(date);
-                      return cmp < minDate;
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         <FormField
           control={form.control}
           name="location"
@@ -491,7 +370,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
-<<<<<<< HEAD
         <FormField
           control={form.control}
           name="category"
@@ -554,36 +432,10 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
                   Invitees must enter this passcode to access registration.
                 </FormDescription>
                 <FormMessage />
-=======
-        {!event?.id && (
-          <FormField
-            control={form.control}
-            name="isInternal"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5 flex-1">
-                  <div className="flex items-center gap-3">
-                    <FormLabel className="text-base">Event Type - Internal?</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>
-                    Toggle for NiMet internal or external event. Internal events hide organization/designation fields. This cannot be changed after creation.
-                  </FormDescription>
-                </div>
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
               </FormItem>
             )}
           />
         )}
-<<<<<<< HEAD
-=======
-        
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         {/* {form.watch("isInternal") && (
           <>
             <FormField

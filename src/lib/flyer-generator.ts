@@ -17,7 +17,6 @@ export function generateFlyer(data: FlyerData): Promise<string> {
       <div style="
         width: 900px;
         height: 1200px;
-<<<<<<< HEAD
         background-color: #ffffff;
         position: relative;
         font-family: 'Montserrat', Arial, sans-serif;
@@ -185,39 +184,6 @@ export function generateFlyer(data: FlyerData): Promise<string> {
               ${data.eventStartDate} ${data.eventEndDate && data.eventEndDate !== data.eventStartDate ? `<br/>to ${data.eventEndDate}` : ''}
             </span>
           </div>
-=======
-        background-image: url('/participant-tag.jpg');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: 'Montserrat', Arial, sans-serif;
-      ">
-        <!-- Participant Name Overlay -->
-        <div style="
-          position: absolute;
-          bottom: 420px;
-          left: 200px;
-          right: 50px;
-          text-align: center;
-          background: rgba(255, 255, 255, 0.9);
-          padding: 20px 40px;
-          border-radius: 15px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-          border: 3px solid #7bc043;
-        ">
-          <div style="
-            font-size: 36px;
-            font-weight: 700;
-            color: #006400;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            /* text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); */
-          ">${data.participantName}</div>
->>>>>>> 6b8d2698d05877becfca6b9699a253c973cf9ce0
         </div>
       </div>
     `;
