@@ -197,45 +197,52 @@ export async function getEvents(): Promise<Event[]> {
 
 export async function getActiveEvents(): Promise<Event[]> {
   try {
-    // Automatically deactivate expired events
+    // Automatically deactivate expired events in database
     await deactivateExpiredEvents();
 
     const db = await getDb();
     const events = await db.collection("events").find({}).sort({ _id: -1 }).toArray();
     const now = new Date();
 
-    return events.map((event) => {
-      const startDate = new Date(event.startDate || event.date);
-      const endDate = new Date(event.endDate || event.date);
+    return events
+      .map((event) => {
+        const startDate = new Date(event.startDate || event.date);
+        const endDate = new Date(event.endDate || event.date);
 
-      // Calculate if event should be active based on dates
-      const shouldBeActive = now >= startDate && now <= endDate;
+        // Set end of day for comparison (23:59:59.999)
+        const endOfDay = new Date(endDate);
+        if (!isNaN(endOfDay.getTime())) {
+          endOfDay.setHours(23, 59, 59, 999);
+        }
 
-      // Use stored isActive if it exists, otherwise calculate based on dates
-      const isActive = event.isActive !== undefined ? event.isActive : shouldBeActive;
-      // Derive category: use stored value or fall back from isInternal
-      const category = event.category || (event.isInternal ? 'internal' : 'external');
+        // An event is expired if current time is past the end of the end date
+        const isExpired = !isNaN(endOfDay.getTime()) && now > endOfDay;
 
-      return {
-        id: event._id.toString(),
-        name: event.name,
-        slug: event.slug || event._id.toString(),
-        startDate: event.startDate || event.date,
-        endDate: event.endDate || event.date,
-        location: event.location,
-        description: event.description,
-        isActive: isActive,
-        isInternal: event.isInternal ?? false,
-        category,
-        allowPublicRegistration: event.allowPublicRegistration ?? false,
-        isInvitationOnly: event.isInvitationOnly ?? false,
-        invitationCode: event.invitationCode || "",
-        department: event.department,
-        position: event.position,
-        assignedStaff: event.assignedStaff || [],
-        agenda: event.agenda || [],
-      };
-    }).filter(event => event.isActive); // Only return active events
+        // Active only if explicitly not disabled AND date has not expired
+        const isActive = !isExpired && (event.isActive !== false);
+        const category = event.category || (event.isInternal ? 'internal' : 'external');
+
+        return {
+          id: event._id.toString(),
+          name: event.name,
+          slug: event.slug || event._id.toString(),
+          startDate: event.startDate || event.date,
+          endDate: event.endDate || event.date,
+          location: event.location,
+          description: event.description,
+          isActive: isActive,
+          isInternal: event.isInternal ?? false,
+          category,
+          allowPublicRegistration: event.allowPublicRegistration ?? false,
+          isInvitationOnly: event.isInvitationOnly ?? false,
+          invitationCode: event.invitationCode || "",
+          department: event.department,
+          position: event.position,
+          assignedStaff: event.assignedStaff || [],
+          agenda: event.agenda || [],
+        };
+      })
+      .filter(event => event.isActive); // Strictly return active, non-expired events
   } catch (error) {
     console.error("Error fetching active events:", error);
     return [];
