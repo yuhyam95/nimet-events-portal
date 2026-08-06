@@ -325,7 +325,7 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   }
 }
 
-export async function addEvent(data: unknown) {
+export async function addEvent(data: unknown): Promise<{ id: string }> {
   const validation = EventSchema.safeParse(data);
   if (!validation.success) {
     throw new Error("Invalid event data");
@@ -359,7 +359,8 @@ export async function addEvent(data: unknown) {
       allowPublicRegistration: validation.data.allowPublicRegistration ?? false,
     };
 
-    await db.collection("events").insertOne(eventData);
+    const result = await db.collection("events").insertOne(eventData);
+    return { id: result.insertedId.toString() };
   } catch (error) {
     console.error("Failed to add event:", error);
     throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not add event.");
@@ -821,6 +822,44 @@ export async function deleteUser(id: string): Promise<void> {
   }
 }
 
+export async function updateUserRole(
+  id: string,
+  newRole: 'admin' | 'scan_admin' | 'user'
+): Promise<{ success: boolean; user?: User; error?: string }> {
+  if (!ObjectId.isValid(id)) {
+    return { success: false, error: "Invalid user ID" };
+  }
+
+  try {
+    const db = await getDb();
+    const now = new Date().toISOString();
+
+    const result = await db.collection("users").findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { role: newRole, updatedAt: now } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return { success: false, error: "User not found" };
+    }
+
+    const updated: User = {
+      id: result._id.toString(),
+      fullName: result.fullName,
+      email: result.email,
+      role: result.role,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
+
+    return { success: true, user: updated };
+  } catch (error) {
+    console.error("Failed to update user role:", error);
+    return { success: false, error: "Database operation failed. Could not update user role." };
+  }
+}
+
 export async function changePassword(id: string, data: unknown): Promise<void> {
   if (!ObjectId.isValid(id)) {
     throw new Error("Invalid user ID");
@@ -1065,8 +1104,8 @@ export async function canUserTakeAttendance(eventId: string, userId: string): Pr
       return false;
     }
 
-    // Admins can always take attendance
-    if (user.role === 'admin') {
+    // Admins and Scanner Admins can always take attendance at any event
+    if (user.role === 'admin' || user.role === 'scan_admin') {
       return true;
     }
 

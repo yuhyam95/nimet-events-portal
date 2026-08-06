@@ -30,7 +30,7 @@ const UserSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
-  role: z.enum(['admin', 'user'], { message: "Role must be either 'admin' or 'user'." }),
+  role: z.enum(['admin', 'scan_admin', 'user'], { message: "Role must be 'admin', 'scan_admin', or 'user'." }),
 }).refine((data) => {
   // If password is provided, it must be at least 6 characters
   if (data.password && data.password.length > 0 && data.password.length < 6) {

@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-middleware';
 import { getParticipantsByEventId } from '@/lib/actions';
 
-async function handleGetParticipants(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
+async function handleGetParticipants(request: NextRequest) {
   try {
-    const { eventId } = await params;
-    
+    // Extract eventId from URL path: /api/mobile/participants/[eventId]
+    const segments = request.nextUrl.pathname.split('/');
+    const eventId = segments[segments.length - 1];
+
+    if (!eventId) {
+      return NextResponse.json({ success: false, error: 'Event ID is required' }, { status: 400 });
+    }
+
     // Get participants for the event
     const participants = await getParticipantsByEventId(eventId);
     
