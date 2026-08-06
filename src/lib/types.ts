@@ -59,11 +59,13 @@ export interface Attendance {
   isMediaPersonnel?: boolean; // Whether the participant is a media personnel
 }
 
+export type UserRole = 'admin' | 'scan_admin' | 'user';
+
 export interface User {
   id: string;
   fullName: string;
   email: string;
-  role: 'admin' | 'user';
+  role: UserRole;
   createdAt: string;
   updatedAt: string;
 }

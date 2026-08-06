@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   user: User | null;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,16 +20,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
 
   // Check for existing session on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('adminUser');
+    const savedToken = localStorage.getItem('adminToken');
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setIsAuthenticated(true);
+        if (savedToken) setToken(savedToken);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         localStorage.removeItem('adminUser');
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (result) {
         setUser(result.user);
+        setToken(result.token);
         setIsAuthenticated(true);
         localStorage.setItem('adminUser', JSON.stringify(result.user));
         localStorage.setItem('adminToken', result.token);
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     setIsAuthenticated(false);
     localStorage.removeItem('adminUser');
     localStorage.removeItem('adminToken');
@@ -66,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, user }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout, user, token }}>
       {children}
     </AuthContext.Provider>
   );

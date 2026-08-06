@@ -15,7 +15,7 @@ import {
   SidebarTitle,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Users, Calendar, UserCog, Bot, LogOut, User } from "lucide-react";
+import { Users, Calendar, UserCog, Bot, LogOut, User, Link2, ScanLine } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
@@ -57,6 +57,28 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {/* External Links — visible to Admin & Scan Admin */}
+              {(user?.role === 'admin' || user?.role === 'scan_admin') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/external-links')} className="text-black font-bold">
+                    <Link href="/admin/external-links">
+                      <Link2 />
+                      <span>External Links</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {/* Scanner Admins Management — visible to Super Admin only */}
+              {user?.role === 'admin' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/scanner-admins')} className="text-black font-bold">
+                    <Link href="/admin/scanner-admins">
+                      <ScanLine />
+                      <span>Scanner Admins</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-middleware';
-import { getEvents } from '@/lib/actions';
+import { getActiveEvents } from '@/lib/actions';
 
 async function handleGetEvents(request: NextRequest) {
   try {
-    // Get all events for mobile app (app handles active/inactive display)
-    const events = await getEvents();
+    // Get only active (non-expired) events for the mobile app.
+    // Expired events remain visible in the backend admin portal for reporting.
+    const events = await getActiveEvents();
     
     return NextResponse.json({
       success: true,
