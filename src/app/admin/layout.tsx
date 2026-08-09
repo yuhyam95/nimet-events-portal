@@ -68,13 +68,13 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {/* Scanner Admins Management — visible to Super Admin only */}
+              {/* Support Users Management — visible to Super Admin only */}
               {user?.role === 'admin' && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/scanner-admins')} className="text-black font-bold">
                     <Link href="/admin/scanner-admins">
                       <ScanLine />
-                      <span>Scanner Admins</span>
+                      <span>Support Users</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -84,8 +84,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter>
               <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                      <AvatarImage src="https://placehold.co/100x100.png" alt="Admin" data-ai-hint="profile picture" />
-                      <AvatarFallback>A</AvatarFallback>
+                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                        {user?.fullName ? user.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'A'}
+                      </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                       <span className="font-semibold text-sm">{user?.fullName || "Admin User"}</span>

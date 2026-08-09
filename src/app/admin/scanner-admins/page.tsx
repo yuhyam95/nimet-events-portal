@@ -68,16 +68,16 @@ export default function ScannerAdminsPage() {
           <span className="text-white text-2xl">📡</span>
         </div>
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Scanner Administrator Management</h1>
+          <h1 className="text-2xl font-black text-gray-900">Support User Management</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Promote staff to Scanner Admin to authorize QR scanning, Agenda display and pass generation.
+            Promote staff to Support User to authorize QR scanning, Agenda display and pass generation.
           </p>
         </div>
       </div>
 
       {!isSuperAdmin && (
         <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl font-semibold text-sm">
-          🔒 Only Super Admins can promote or demote Scanner Administrators.
+          🔒 Only Super Admins can promote or demote Support Users.
         </div>
       )}
 
@@ -104,7 +104,7 @@ export default function ScannerAdminsPage() {
               <div className="flex gap-2 mt-1">
                 <span className="text-xs bg-[#E8F5E9] text-[#006B3E] px-2 py-0.5 rounded-full font-semibold">Super Admin ✅</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${perm.scanAdmin ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
-                  Scanner Admin {perm.scanAdmin ? '✅' : '❌'}
+                  Support User {perm.scanAdmin ? '✅' : '❌'}
                 </span>
               </div>
             </div>
@@ -115,13 +115,13 @@ export default function ScannerAdminsPage() {
       {/* Active Scanner Admins */}
       <div>
         <h2 className="text-lg font-black text-gray-800 mb-3">
-          Active Scanner Administrators ({scannerAdmins.length})
+          Active Support Users ({scannerAdmins.length})
         </h2>
         {loading ? (
           <div className="text-sm text-gray-500 font-medium animate-pulse">Loading users...</div>
         ) : scannerAdmins.length === 0 ? (
           <div className="text-sm text-gray-400 italic bg-gray-50 p-4 rounded-xl border border-gray-200">
-            No Scanner Administrators assigned yet. Promote a user below.
+            No Support Users assigned yet. Promote a user below.
           </div>
         ) : (
           <div className="space-y-3">
@@ -132,7 +132,7 @@ export default function ScannerAdminsPage() {
                   <p className="text-xs text-gray-500">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="bg-[#006B3E] text-white text-xs font-black px-3 py-1 rounded-full">Scanner Admin</span>
+                  <span className="bg-[#006B3E] text-white text-xs font-black px-3 py-1 rounded-full">Support User</span>
                   {isSuperAdmin && (
                     <button
                       onClick={() => handleRoleChange(u.id, 'demote')}
@@ -168,7 +168,7 @@ export default function ScannerAdminsPage() {
                     disabled={actionLoading === u.id}
                     className="text-xs bg-[#006B3E] hover:bg-[#005430] text-white font-bold px-4 py-2 rounded-lg shadow transition-colors disabled:opacity-50"
                   >
-                    {actionLoading === u.id ? 'Promoting...' : '📡 Promote to Scanner Admin'}
+                    {actionLoading === u.id ? 'Promoting...' : '📡 Promote to Support User'}
                   </button>
                 </div>
               ))}

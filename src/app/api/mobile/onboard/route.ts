@@ -6,7 +6,7 @@ async function handleOnboardParticipant(request: AuthenticatedRequest) {
     try {
         const body = await request.json();
         console.log("Mobile onboard request body:", body);
-        const { firstName, lastName, email, organization, phone, position, designation, eventId } = body;
+        const { firstName, lastName, email, organization, phone, position, designation, eventId, participantCategory, isMediaPersonnel, invitationId } = body;
 
         // Get the logged-in user (staff) ID from the authenticated request
         const staffId = request.user?.id;
@@ -29,6 +29,9 @@ async function handleOnboardParticipant(request: AuthenticatedRequest) {
             position: position || "",
             designation: designation || "",
             eventId,
+            participantCategory: participantCategory || undefined,
+            isMediaPersonnel: isMediaPersonnel ?? (participantCategory === 'media_personality'),
+            invitationId: invitationId || undefined,
             skipDuplicateCheck: true, // Allow multiple registrations with same email/phone for staff-assisted onboarding
             onboardedBy: staffId,
             onboardingDate: new Date().toISOString(),

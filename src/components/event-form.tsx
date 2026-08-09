@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -22,8 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { addEvent, updateEvent } from "@/lib/actions";
-import type { Event } from "@/lib/types";
-import { CalendarIcon } from "lucide-react";
+import type { Event, FoodMenuItem } from "@/lib/types";
+import { CalendarIcon, PlusCircle, Trash2 } from "lucide-react";
 import { format, startOfDay, startOfToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +45,7 @@ const formSchema = z.object({
   theme: z.string().optional(),
   isActive: z.boolean().optional(),
   category: z.enum(['internal', 'external', 'meeting'], { required_error: "Event category is required." }),
+  eventType: z.enum(['conference', 'workshop', 'seminar', 'summit', 'banquet', 'dinner', 'symposium', 'exhibition', 'training', 'other']).optional(),
   isInvitationOnly: z.boolean().optional(),
   invitationCode: z.string().optional(),
   department: z.string().optional(),
@@ -59,6 +60,23 @@ interface EventFormProps {
 export function EventForm({ onSuccess, event }: EventFormProps) {
   const { toast } = useToast();
 
+  // Food menu state (managed separately for dynamic add/remove)
+  const [foodMenu, setFoodMenu] = useState<FoodMenuItem[]>(
+    event?.foodMenu || []
+  );
+
+  const addFoodItem = () => {
+    setFoodMenu(prev => [...prev, { id: crypto.randomUUID(), name: "", description: "" }]);
+  };
+
+  const removeFoodItem = (id: string) => {
+    setFoodMenu(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateFoodItem = (id: string, field: keyof FoodMenuItem, value: string) => {
+    setFoodMenu(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -70,8 +88,9 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
       endTime: event?.endDate && event.endDate.includes('T') ? event.endDate.split('T')[1].substring(0, 5) : "",
       location: event?.location || "",
       theme: event?.description || "",
-      isActive: event?.isActive ?? true, // Default to true for new events
+      isActive: event?.isActive ?? true,
       category: event?.category || (event?.isInternal ? "internal" : "external"),
+      eventType: event?.eventType,
       isInvitationOnly: event?.isInvitationOnly ?? false,
       invitationCode: event?.invitationCode || "",
       department: event?.department || "",
@@ -114,7 +133,6 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // Format dates to YYYY-MM-DD without timezone issues
       const formatDateToYYYYMMDD = (date: Date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -129,23 +147,22 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
         ...values,
         startDate: values.startTime ? `${startStr}T${values.startTime}` : startStr,
         endDate: values.endTime ? `${endStr}T${values.endTime}` : endStr,
-        description: values.theme || "", // Map theme to description for backend compatibility
-        isActive: values.isActive ?? true, // Include active status
+        description: values.theme || "",
+        isActive: values.isActive ?? true,
         isInternal: values.category !== 'external',
-        department: values.department || "", // Include department
-        position: values.position || "", // Include position
-        assignedStaff: event?.assignedStaff || [], // Include assigned staff
+        department: values.department || "",
+        position: values.position || "",
+        assignedStaff: event?.assignedStaff || [],
+        foodMenu: foodMenu.filter(item => item.name.trim() !== ""),
       };
       
       if (event?.id) {
-        // Update existing event
         await updateEvent(event.id, eventData);
         toast({
           title: "Event Updated!",
           description: "The event has been successfully updated.",
         });
       } else {
-        // Create new event
         await addEvent(eventData);
         toast({
           title: "Event Created!",
@@ -395,6 +412,39 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="eventType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Event Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select event type (optional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="summit">Summit</SelectItem>
+                  <SelectItem value="conference">Conference</SelectItem>
+                  <SelectItem value="workshop">Workshop</SelectItem>
+                  <SelectItem value="seminar">Seminar</SelectItem>
+                  <SelectItem value="symposium">Symposium</SelectItem>
+                  <SelectItem value="banquet">Banquet</SelectItem>
+                  <SelectItem value="dinner">Dinner</SelectItem>
+                  <SelectItem value="exhibition">Exhibition</SelectItem>
+                  <SelectItem value="training">Training</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Classify the format of this event (e.g. Summit, Conference, Workshop).
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="isInvitationOnly"
@@ -424,18 +474,66 @@ export function EventForm({ onSuccess, event }: EventFormProps) {
             name="invitationCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Invitation Code / Passcode</FormLabel>
+                <FormLabel>Shared Invitation Passcode (Legacy)</FormLabel>
                 <FormControl>
                   <Input placeholder="e.g. AIC2026" {...field} />
                 </FormControl>
                 <FormDescription>
-                  Invitees must enter this passcode to access registration.
+                  Optional: A shared passcode for the event. For per-invitee unique codes, use the Invitation Manager after creating the event.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         )}
+
+        {/* ─── Food Menu ─────────────────────────────────────────────── */}
+        <div className="rounded-lg border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-base">Food Menu (Optional)</p>
+              <p className="text-sm text-muted-foreground">Add meal options that participants can select during registration.</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addFoodItem}>
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Add Item
+            </Button>
+          </div>
+
+          {foodMenu.length === 0 && (
+            <p className="text-sm text-muted-foreground italic text-center py-3">
+              No menu items yet. Click &quot;Add Item&quot; to add meal options.
+            </p>
+          )}
+
+          <div className="space-y-2">
+            {foodMenu.map((item, index) => (
+              <div key={item.id} className="flex items-start gap-2">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    placeholder={`Item ${index + 1} name (e.g. Jollof Rice)`}
+                    value={item.name}
+                    onChange={(e) => updateFoodItem(item.id, "name", e.target.value)}
+                  />
+                  <Input
+                    placeholder="Description (optional)"
+                    value={item.description || ""}
+                    onChange={(e) => updateFoodItem(item.id, "description", e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => removeFoodItem(item.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
         {/* {form.watch("isInternal") && (
           <>
             <FormField
