@@ -186,25 +186,8 @@ export const AdminLinkApproval: React.FC<AdminLinkApprovalProps> = ({ events, us
         )}
       </div>
 
-      {/* Link Input */}
+      {/* Link Input Form */}
       <form onSubmit={handleParseLink} className="space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-            External Source Link
-          </label>
-          <input
-            type="url"
-            value={urlInput}
-            onChange={e => setUrlInput(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/... or https://example.com?name=John&org=Agency"
-            className="w-full text-sm p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#006B3E] focus:outline-none"
-            required
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Accepts formatted URLs with query params, Google Sheets links, or CSV links.
-          </p>
-        </div>
-
         {/* Event Mode Toggle */}
         <div>
           <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Target Event</label>
@@ -300,6 +283,24 @@ export const AdminLinkApproval: React.FC<AdminLinkApprovalProps> = ({ events, us
               />
             </div>
           )}
+        </div>
+
+        {/* Link Input — appears below event selection */}
+        <div>
+          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+            External Source Link
+          </label>
+          <input
+            type="url"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            placeholder="https://docs.google.com/spreadsheets/d/... or https://example.com?name=John&org=Agency"
+            className="w-full text-sm p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#006B3E] focus:outline-none"
+            required
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Accepts formatted URLs with query params, Google Sheets links, or CSV links.
+          </p>
         </div>
 
         <button

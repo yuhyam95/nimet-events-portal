@@ -513,3 +513,198 @@ function formatEventDate(dateString: string): string {
     return dateString;
   }
 }
+
+// ─── Invitation Email ─────────────────────────────────────────────────────────
+
+interface InvitationEmailData {
+  inviteeName: string;
+  inviteeEmail: string;
+  invitationCode: string;
+  event: Event;
+}
+
+/**
+ * Send a personal invitation email to an invitee with their unique QR code and text code.
+ */
+export async function sendInvitationEmail(data: InvitationEmailData): Promise<void> {
+  try {
+    // Generate a QR code for the invitation code itself
+    const qrCodeDataUrl = await QRCode.toDataURL(data.invitationCode, {
+      width: 220,
+      margin: 2,
+      errorCorrectionLevel: 'H',
+      color: {
+        dark: '#006B3E',
+        light: '#FFFFFF',
+      },
+    });
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Invitation – ${data.event.name}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
+          }
+          .card {
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          }
+          .header {
+            background: linear-gradient(135deg, #006B3E 0%, #00994f 100%);
+            padding: 32px 24px;
+            text-align: center;
+          }
+          .header img { max-width: 140px; height: auto; margin-bottom: 16px; }
+          .header h1 { color: #ffffff; margin: 0; font-size: 22px; }
+          .header p { color: rgba(255,255,255,0.85); margin: 6px 0 0; font-size: 14px; }
+          .body { padding: 28px 24px; }
+          .greeting { font-size: 17px; margin-bottom: 16px; }
+          .event-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+          }
+          .event-box p { margin: 4px 0; font-size: 14px; }
+          .event-box strong { color: #166534; }
+          .code-section {
+            text-align: center;
+            background: #f8fafc;
+            border: 2px dashed #006B3E;
+            border-radius: 12px;
+            padding: 24px 16px;
+            margin-bottom: 24px;
+          }
+          .code-section h3 { margin: 0 0 12px; color: #006B3E; font-size: 16px; }
+          .code-section img { border-radius: 8px; border: 2px solid #006B3E; }
+          .code-badge {
+            display: inline-block;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 6px;
+            color: #006B3E;
+            background: #ffffff;
+            border: 2px solid #006B3E;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin-top: 16px;
+          }
+          .instructions {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 14px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+          }
+          .instructions h4 { margin: 0 0 8px; color: #1d4ed8; }
+          .instructions ol { margin: 0; padding-left: 18px; }
+          .instructions li { margin-bottom: 4px; }
+          .warning {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #92400e;
+          }
+          .footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid #f3f4f6;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <img src="cid:nimet-logo" alt="NiMet Logo" />
+            <h1>You're Invited!</h1>
+            <p>${data.event.name}</p>
+          </div>
+
+          <div class="body">
+            <p class="greeting">Dear <strong>${data.inviteeName}</strong>,</p>
+            <p>You have been personally invited to attend the following event. Please find your unique invitation code below — keep it safe and bring it to the event.</p>
+
+            <div class="event-box">
+              <p><strong>Event:</strong> ${data.event.name}</p>
+              <p><strong>Date:</strong> ${formatEventDate(data.event.startDate)}${data.event.startDate !== data.event.endDate ? ` – ${formatEventDate(data.event.endDate)}` : ''}</p>
+              <p><strong>Venue:</strong> ${data.event.location}</p>
+              ${data.event.description ? `<p><strong>Theme:</strong> ${data.event.description}</p>` : ''}
+            </div>
+
+            <div class="code-section">
+              <h3>🎫 Your Personal Invitation Code</h3>
+              <img src="cid:invitation-qr" alt="Invitation QR Code" width="180" height="180" />
+              <br/>
+              <span class="code-badge">${data.invitationCode}</span>
+            </div>
+
+            <div class="instructions">
+              <h4>📋 How to use your code at registration:</h4>
+              <ol>
+                <li><strong>Scan</strong> the QR code above using your phone camera, <em>or</em></li>
+                <li><strong>Type</strong> the code <strong>${data.invitationCode}</strong> on the registration form</li>
+                <li>Your details will <strong>auto-fill</strong> — just confirm and submit</li>
+                <li>You will receive a separate QR pass for event entry</li>
+              </ol>
+            </div>
+
+            <div class="warning">
+              ⚠️ <strong>Important:</strong> This code is unique to you and can only be used once. Do not share it with others.
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Nigeria Meteorological Agency (NiMet). All rights reserved.</p>
+            <p>If you believe you received this in error, please disregard this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: data.inviteeEmail,
+      subject: `Your Invitation to ${data.event.name}`,
+      html: emailHtml,
+      attachments: [
+        {
+          filename: 'nimet-logo.png',
+          path: './public/nimet-logo.png',
+          cid: 'nimet-logo',
+        },
+        {
+          filename: 'invitation-qr.png',
+          content: qrCodeDataUrl.split(',')[1],
+          encoding: 'base64',
+          cid: 'invitation-qr',
+        },
+      ],
+    });
+
+    console.log(`Invitation email sent to ${data.inviteeEmail} with code ${data.invitationCode}`);
+  } catch (error) {
+    console.error('Error sending invitation email:', error);
+    throw new Error('Failed to send invitation email');
+  }
+}

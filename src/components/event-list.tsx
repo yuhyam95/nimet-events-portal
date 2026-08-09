@@ -297,6 +297,16 @@ export function EventList() {
                     Manage Agenda
                   </Link>
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100"
+                  asChild
+                >
+                  <Link href={`/admin/events/${event.id}/invitations`}>
+                    Manage Invitations
+                  </Link>
+                </Button>
                 {/* <Button 
                   variant="destructive" 
                   size="sm" 
@@ -343,6 +353,11 @@ export function EventList() {
                       }`}>
                         {event.isInternal ? 'Internal' : 'External'}
                       </span>
+                      {event.eventType && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 capitalize ml-1">
+                          {event.eventType}
+                        </span>
+                      )}
                       {event.isInternal && event.department && (
                         <div className="text-xs text-muted-foreground">
                           <div className="font-medium">Dept: {event.department}</div>
@@ -390,6 +405,11 @@ export function EventList() {
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/events/${event.id}/agenda`}>
                               Manage Agenda
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/events/${event.id}/invitations`}>
+                              Manage Invitations
                             </Link>
                           </DropdownMenuItem>
                            <DropdownMenuItem 

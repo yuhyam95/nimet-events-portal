@@ -7,7 +7,7 @@ import { AdminLinkApproval } from '@/components/admin-link-approval';
 import { Event } from '@/lib/types';
 
 export default function ExternalLinksPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,22 +42,6 @@ export default function ExternalLinksPage() {
               </span>
             )}
           </p>
-        </div>
-      </div>
-
-      {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-        <div className="flex gap-3 items-start">
-          <span className="text-xl">ℹ️</span>
-          <div>
-            <p className="font-bold mb-1">How It Works</p>
-            <ul className="space-y-1 font-medium">
-              <li>1. Paste a <strong>formatted URL</strong> (e.g. <code className="bg-blue-100 px-1 rounded">?name=John&org=Agency&designation=Director</code>) or a <strong>Google Sheet CSV link</strong>.</li>
-              <li>2. Click <strong>Parse & Preview Link</strong> to see detected participants.</li>
-              <li>3. <strong>Super Admin only</strong>: Click <strong>Accept Link & Generate QR Passes</strong> to register attendees and create branded passes.</li>
-              <li>4. Download passes or click <strong>Display for Scan</strong> for mobile scanning.</li>
-            </ul>
-          </div>
         </div>
       </div>
 

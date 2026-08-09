@@ -4,9 +4,9 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { getDb } from "./mongodb";
-import type { Event, Participant, User, CreateUserData, Attendance } from "./types";
+import type { Event, Participant, User, CreateUserData, Attendance, Invitation, FoodMenuItem } from "./types";
 import bcrypt from "bcryptjs";
-import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail } from "./email-service";
+import { sendRegistrationEmail, sendAttendanceQREmail, sendFollowUpEmail, sendInvitationEmail } from "./email-service";
 import { generateToken, verifyToken, type JWTPayload } from "./jwt";
 
 const ParticipantSchema = z.object({
@@ -22,6 +22,9 @@ const ParticipantSchema = z.object({
   onboardingDate: z.string().optional(),
   skipDuplicateCheck: z.boolean().optional(),
   isMediaPersonnel: z.boolean().optional(),
+  mealPreference: z.string().optional(),
+  invitationId: z.string().optional(),
+  participantCategory: z.enum(['invited_guest', 'nimet_staff', 'media_personality']).optional(),
 });
 
 const EventSchema = z.object({
@@ -34,6 +37,7 @@ const EventSchema = z.object({
   isActive: z.boolean().optional(),
   isInternal: z.boolean().optional(),
   category: z.enum(['internal', 'external', 'meeting']).optional(),
+  eventType: z.enum(['conference', 'workshop', 'seminar', 'summit', 'banquet', 'dinner', 'symposium', 'exhibition', 'training', 'other']).optional(),
   allowPublicRegistration: z.boolean().optional(),
   isInvitationOnly: z.boolean().optional(),
   invitationCode: z.string().optional(),
@@ -45,6 +49,11 @@ const EventSchema = z.object({
     title: z.string(),
     time: z.string().optional(),
     speaker: z.string().optional()
+  })).optional(),
+  foodMenu: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional()
   })).optional(),
 });
 
@@ -104,47 +113,41 @@ const ChangePasswordSchema = z.object({
 
 // getDb is now imported from ./mongodb and provides a singleton connection
 
+let lastDeactivationCheck = 0;
+const DEACTIVATION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Automatically deactivate events where the end date has passed
- * This function updates the database to mark expired events as inactive
+ * Throttled to avoid database overhead on every request
  */
 export async function deactivateExpiredEvents(): Promise<void> {
+  const nowMs = Date.now();
+  if (nowMs - lastDeactivationCheck < DEACTIVATION_CHECK_INTERVAL) {
+    return;
+  }
+  lastDeactivationCheck = nowMs;
+
   try {
     const db = await getDb();
-    const now = new Date();
+    const todayISO = new Date().toISOString().split("T")[0];
 
-    // Find events that are currently active (or undefined) and have passed their end date
-    const events = await db.collection("events").find({
-      $or: [
-        { isActive: { $exists: false } }, // isActive field doesn't exist
-        { isActive: true }
-      ]
-    }).toArray();
+    // Single bulk update instead of N+1 loop queries
+    const result = await db.collection("events").updateMany(
+      {
+        isActive: { $ne: false },
+        $or: [
+          { endDate: { $lt: todayISO } },
+          { date: { $lt: todayISO } },
+        ]
+      },
+      { $set: { isActive: false } }
+    );
 
-    let deactivatedCount = 0;
-
-    for (const event of events) {
-      const endDate = new Date(event.endDate || event.date);
-
-      // If end date has passed (using end of day for endDate)
-      const endOfDay = new Date(endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      if (now > endOfDay) {
-        await db.collection("events").updateOne(
-          { _id: event._id },
-          { $set: { isActive: false } }
-        );
-        deactivatedCount++;
-      }
-    }
-
-    if (deactivatedCount > 0) {
-      console.log(`Automatically deactivated ${deactivatedCount} expired event(s)`);
+    if (result.modifiedCount > 0) {
+      console.log(`Automatically deactivated ${result.modifiedCount} expired event(s)`);
     }
   } catch (error) {
     console.error("Error deactivating expired events:", error);
-    // Don't throw - this is a background operation
   }
 }
 
@@ -180,6 +183,7 @@ export async function getEvents(): Promise<Event[]> {
         isActive: isActive,
         isInternal: event.isInternal ?? false,
         category,
+        eventType: event.eventType,
         allowPublicRegistration: event.allowPublicRegistration ?? false,
         isInvitationOnly: event.isInvitationOnly ?? false,
         invitationCode: event.invitationCode || "",
@@ -187,6 +191,7 @@ export async function getEvents(): Promise<Event[]> {
         position: event.position,
         assignedStaff: event.assignedStaff || [],
         agenda: event.agenda || [],
+        foodMenu: event.foodMenu || [],
       };
     }); // Return all events (both active and inactive)
   } catch (error) {
@@ -233,6 +238,7 @@ export async function getActiveEvents(): Promise<Event[]> {
           isActive: isActive,
           isInternal: event.isInternal ?? false,
           category,
+          eventType: event.eventType,
           allowPublicRegistration: event.allowPublicRegistration ?? false,
           isInvitationOnly: event.isInvitationOnly ?? false,
           invitationCode: event.invitationCode || "",
@@ -240,6 +246,7 @@ export async function getActiveEvents(): Promise<Event[]> {
           position: event.position,
           assignedStaff: event.assignedStaff || [],
           agenda: event.agenda || [],
+          foodMenu: event.foodMenu || [],
         };
       })
       .filter(event => event.isActive); // Strictly return active, non-expired events
@@ -279,12 +286,14 @@ export async function getEventById(id: string): Promise<Event | null> {
       isActive: isActive,
       isInternal: event.isInternal ?? false,
       category: event.category || (event.isInternal ? 'internal' : 'external'),
+      eventType: event.eventType,
       allowPublicRegistration: event.allowPublicRegistration ?? false,
       isInvitationOnly: event.isInvitationOnly ?? false,
       invitationCode: event.invitationCode || "",
       department: event.department,
       position: event.position,
       agenda: event.agenda || [],
+      foodMenu: event.foodMenu || [],
     };
   } catch (error) {
     console.error(`Error fetching event by id ${id}:`, error);
@@ -319,12 +328,14 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
       isActive: isActive,
       isInternal: event.isInternal ?? false,
       category: event.category || (event.isInternal ? 'internal' : 'external'),
+      eventType: event.eventType,
       allowPublicRegistration: event.allowPublicRegistration ?? false,
       isInvitationOnly: event.isInvitationOnly ?? false,
       invitationCode: event.invitationCode || "",
       department: event.department,
       position: event.position,
       agenda: event.agenda || [],
+      foodMenu: event.foodMenu || [],
     };
   } catch (error) {
     console.error(`Error fetching event by slug ${slug}:`, error);
@@ -586,6 +597,15 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       ...participantData,
       eventId: new ObjectId(eventId)
     });
+
+    // If registered via unique invitation code, mark it as used
+    if (participantData.invitationId) {
+      try {
+        await markInvitationUsed(participantData.invitationId, result.insertedId.toString());
+      } catch (invErr) {
+        console.error("Failed to mark invitation as used:", invErr);
+      }
+    }
 
     // Send attendance QR code email ONLY if not manually onboarded
     if (!participantData.onboardedBy) {
@@ -1698,3 +1718,276 @@ export async function updateEventAgenda(eventId: string, agenda: unknown) {
     throw new Error(error instanceof Error ? error.message : "Database operation failed. Could not update event agenda.");
   }
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Generate a unique invitation code like NMT-A3X-9F2B
+ */
+function generateInviteCode(prefix: string = 'NMT'): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const seg = (len: number) =>
+    Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `${prefix}-${seg(3)}-${seg(4)}`;
+}
+
+// ─── Invitation Actions ───────────────────────────────────────────────────────
+
+/**
+ * Bulk-generate N unique invitation codes for an event.
+ */
+export async function createInvitations(
+  eventId: string,
+  count: number,
+  codePrefix?: string,
+  prefillData?: { inviteeName?: string; inviteeEmail?: string; inviteeOrg?: string }[]
+): Promise<{ success: boolean; invitations?: Invitation[]; error?: string }> {
+  if (!ObjectId.isValid(eventId)) {
+    return { success: false, error: "Invalid event ID" };
+  }
+  if (count < 1 || count > 500) {
+    return { success: false, error: "Count must be between 1 and 500" };
+  }
+
+  try {
+    const db = await getDb();
+    const existingCodes = (await db.collection("invitations").distinct("code", { eventId })) as string[];
+    const existingSet = new Set(existingCodes);
+
+    const now = new Date().toISOString();
+    const docs: any[] = [];
+
+    for (let i = 0; i < count; i++) {
+      let code: string;
+      const prefix = codePrefix ? codePrefix.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'NMT' : 'NMT';
+      do { code = generateInviteCode(prefix); } while (existingSet.has(code));
+      existingSet.add(code);
+
+      const prefill = prefillData?.[i] || {};
+      docs.push({
+        eventId,
+        code,
+        inviteeName: prefill.inviteeName || "",
+        inviteeEmail: prefill.inviteeEmail || "",
+        inviteeOrg: prefill.inviteeOrg || "",
+        isUsed: false,
+        createdAt: now,
+      });
+    }
+
+    const result = await db.collection("invitations").insertMany(docs);
+    const insertedInvitations: Invitation[] = docs.map((d, i) => ({
+      id: result.insertedIds[i].toString(),
+      eventId: d.eventId,
+      code: d.code,
+      inviteeName: d.inviteeName,
+      inviteeEmail: d.inviteeEmail,
+      inviteeOrg: d.inviteeOrg,
+      isUsed: false,
+      createdAt: d.createdAt,
+    }));
+
+    return { success: true, invitations: insertedInvitations };
+  } catch (error) {
+    console.error("Failed to create invitations:", error);
+    return { success: false, error: "Database operation failed. Could not create invitations." };
+  }
+}
+
+/**
+ * Add a single invitation with optional pre-filled invitee details.
+ */
+export async function addInvitation(
+  eventId: string,
+  data: { inviteeName?: string; inviteeEmail?: string; inviteeOrg?: string; customCode?: string }
+): Promise<{ success: boolean; invitation?: Invitation; error?: string }> {
+  if (!ObjectId.isValid(eventId)) {
+    return { success: false, error: "Invalid event ID" };
+  }
+
+  try {
+    const db = await getDb();
+    const existingCodes = (await db.collection("invitations").distinct("code", { eventId })) as string[];
+    const existingSet = new Set(existingCodes);
+
+    let code: string;
+
+    if (data.customCode && data.customCode.trim()) {
+      // Use the admin-provided code
+      const trimmed = data.customCode.trim().toUpperCase();
+      if (existingSet.has(trimmed)) {
+        return { success: false, error: `Code "${trimmed}" already exists for this event. Please use a different code.` };
+      }
+      code = trimmed;
+    } else {
+      // Auto-generate
+      do { code = generateInviteCode(); } while (existingSet.has(code));
+    }
+
+    const now = new Date().toISOString();
+    const doc = {
+      eventId,
+      code,
+      inviteeName: data.inviteeName || "",
+      inviteeEmail: data.inviteeEmail || "",
+      inviteeOrg: data.inviteeOrg || "",
+      isUsed: false,
+      createdAt: now,
+    };
+
+    const result = await db.collection("invitations").insertOne(doc);
+
+    return {
+      success: true,
+      invitation: { id: result.insertedId.toString(), ...doc },
+    };
+  } catch (error) {
+    console.error("Failed to add invitation:", error);
+    return { success: false, error: "Database operation failed. Could not add invitation." };
+  }
+}
+
+/**
+ * Get all invitations for an event.
+ */
+export async function getInvitations(eventId: string): Promise<Invitation[]> {
+  try {
+    const db = await getDb();
+    const docs = await db.collection("invitations").find({ eventId }).sort({ createdAt: -1 }).toArray();
+    return docs.map((d) => ({
+      id: d._id.toString(),
+      eventId: d.eventId,
+      code: d.code,
+      inviteeName: d.inviteeName || "",
+      inviteeEmail: d.inviteeEmail || "",
+      inviteeOrg: d.inviteeOrg || "",
+      isUsed: d.isUsed || false,
+      participantId: d.participantId,
+      createdAt: d.createdAt,
+      usedAt: d.usedAt,
+    }));
+  } catch (error) {
+    console.error("Failed to get invitations:", error);
+    return [];
+  }
+}
+
+/**
+ * Look up a code without marking it used. Returns prefilled invitee data if any.
+ */
+export async function lookupInvitationCode(
+  eventId: string,
+  code: string
+): Promise<{ found: boolean; invitation?: Invitation; error?: string }> {
+  try {
+    const db = await getDb();
+    const doc = await db.collection("invitations").findOne({
+      eventId,
+      code: code.toUpperCase().trim(),
+    });
+
+    if (!doc) return { found: false, error: "Invalid or unrecognised invitation code." };
+    if (doc.isUsed) return { found: false, error: "This invitation code has already been used." };
+
+    return {
+      found: true,
+      invitation: {
+        id: doc._id.toString(),
+        eventId: doc.eventId,
+        code: doc.code,
+        inviteeName: doc.inviteeName || "",
+        inviteeEmail: doc.inviteeEmail || "",
+        inviteeOrg: doc.inviteeOrg || "",
+        isUsed: doc.isUsed,
+        createdAt: doc.createdAt,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to look up invitation code:", error);
+    return { found: false, error: "Server error. Please try again." };
+  }
+}
+
+/**
+ * Mark an invitation as used after a participant completes registration.
+ */
+export async function markInvitationUsed(
+  invitationId: string,
+  participantId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(invitationId)) {
+    return { success: false, error: "Invalid invitation ID" };
+  }
+
+  try {
+    const db = await getDb();
+    const result = await db.collection("invitations").updateOne(
+      { _id: new ObjectId(invitationId) },
+      { $set: { isUsed: true, participantId, usedAt: new Date().toISOString() } }
+    );
+
+    if (result.matchedCount === 0) return { success: false, error: "Invitation not found" };
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to mark invitation as used:", error);
+    return { success: false, error: "Database operation failed." };
+  }
+}
+
+/**
+ * Delete an unused invitation code.
+ */
+export async function deleteInvitation(
+  invitationId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(invitationId)) {
+    return { success: false, error: "Invalid invitation ID" };
+  }
+
+  try {
+    const db = await getDb();
+    const doc = await db.collection("invitations").findOne({ _id: new ObjectId(invitationId) });
+    if (!doc) return { success: false, error: "Invitation not found" };
+    if (doc.isUsed) return { success: false, error: "Cannot delete a used invitation" };
+
+    await db.collection("invitations").deleteOne({ _id: new ObjectId(invitationId) });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete invitation:", error);
+    return { success: false, error: "Database operation failed." };
+  }
+}
+
+/**
+ * Send an email for a specific invitation code.
+ */
+export async function sendInvitationEmailAction(
+  invitationId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(invitationId)) {
+    return { success: false, error: "Invalid invitation ID" };
+  }
+
+  try {
+    const db = await getDb();
+    const doc = await db.collection("invitations").findOne({ _id: new ObjectId(invitationId) });
+    if (!doc) return { success: false, error: "Invitation not found" };
+    if (!doc.inviteeEmail) return { success: false, error: "No email address provided for this invitation" };
+
+    const event = await getEventById(doc.eventId);
+    if (!event) return { success: false, error: "Event not found" };
+
+    await sendInvitationEmail({
+      inviteeName: doc.inviteeName || "Valued Guest",
+      inviteeEmail: doc.inviteeEmail,
+      invitationCode: doc.code,
+      event,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send invitation email:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
+  }
+}
+

@@ -6,6 +6,24 @@ export interface AgendaItem {
   speaker?: string;
 }
 
+export interface FoodMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export type EventType =
+  | 'conference'
+  | 'workshop'
+  | 'seminar'
+  | 'summit'
+  | 'banquet'
+  | 'dinner'
+  | 'symposium'
+  | 'exhibition'
+  | 'training'
+  | 'other';
+
 export interface Event {
   id: string;
   name: string;
@@ -17,6 +35,7 @@ export interface Event {
   isActive: boolean;
   isInternal: boolean;
   category?: 'internal' | 'external' | 'meeting';
+  eventType?: EventType;
   allowPublicRegistration?: boolean;
   isInvitationOnly?: boolean;
   invitationCode?: string;
@@ -24,6 +43,7 @@ export interface Event {
   position?: string;
   assignedStaff?: string[]; // Array of user IDs
   agenda?: AgendaItem[];
+  foodMenu?: FoodMenuItem[];
 }
 
 export type NewEvent = Omit<Event, "id">;
@@ -43,6 +63,21 @@ export interface Participant {
   onboardedBy?: string; // ID of the staff who onboarded this participant
   onboardingDate?: string; // Date when manual onboarding happened
   isMediaPersonnel?: boolean; // Whether the participant is a media personnel
+  mealPreference?: string; // Meal selection if event has a food menu
+  invitationId?: string; // Linked invitation ID if registered via unique invite
+}
+
+export interface Invitation {
+  id: string;
+  eventId: string;
+  code: string; // Unique alphanumeric code e.g. NMT-A3X9
+  inviteeName?: string; // Pre-filled name (optional)
+  inviteeEmail?: string; // Pre-filled email (optional)
+  inviteeOrg?: string; // Pre-filled organization (optional)
+  isUsed: boolean;
+  participantId?: string; // Set after successful registration
+  createdAt: string;
+  usedAt?: string;
 }
 
 export interface Attendance {
