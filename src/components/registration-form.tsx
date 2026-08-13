@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,10 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { addParticipant, markAttendance, lookupInvitationCode } from "@/lib/actions";
 import type { Event, Invitation } from "@/lib/types";
-import { CheckCircle2, Loader2, QrCode, Search, Users, X } from "lucide-react";
+import { Briefcase, Check, CheckCircle2, Loader2, QrCode, Search, UserCheck, Users, Video, X } from "lucide-react";
 
 type ParticipantCategory = "invited_guest" | "nimet_staff" | "media_personality" | "";
 
@@ -47,8 +47,8 @@ const formSchema = z.object({
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  phone: z.string().min(11, {
-    message: "Please enter a valid phone number.",
+  phone: z.string().min(6, {
+    message: "Please enter a valid phone number with country code.",
   }),
   isMediaPersonnel: z.boolean().default(false).optional(),
   mealPreference: z.string().optional(),
@@ -56,7 +56,7 @@ const formSchema = z.object({
   participantCategory: z.enum(["invited_guest", "nimet_staff", "media_personality"]).optional(),
 });
 
-export function RegistrationForm({
+function RegistrationFormInner({
   eventId,
   event,
   onSuccessfulOnboarding,
@@ -68,14 +68,15 @@ export function RegistrationForm({
   const { toast } = useToast();
   const router = useRouter();
 
-  // Category state
   const [selectedCategory, setSelectedCategory] = useState<ParticipantCategory>("");
+  const [isAutoRecognized, setIsAutoRecognized] = useState(false);
 
-  // Invitation code state — only used for Invited Guests
   const [codeInput, setCodeInput] = useState("");
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verifiedInvitation, setVerifiedInvitation] = useState<Invitation | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,7 +94,6 @@ export function RegistrationForm({
     },
   });
 
-  // Verify the typed/scanned invitation code
   const handleVerifyCode = useCallback(async (code?: string) => {
     const codeToVerify = (code ?? codeInput).trim().toUpperCase();
     if (!codeToVerify) {
@@ -117,7 +117,6 @@ export function RegistrationForm({
     setVerifiedInvitation(inv);
     setCodeError(null);
 
-    // Auto-populate form fields from invitation data
     if (inv.inviteeName) form.setValue("name", inv.inviteeName, { shouldValidate: true });
     if (inv.inviteeEmail) form.setValue("contact", inv.inviteeEmail, { shouldValidate: true });
     if (inv.inviteeOrg) form.setValue("organization", inv.inviteeOrg, { shouldValidate: true });
@@ -127,6 +126,39 @@ export function RegistrationForm({
       description: `Welcome${inv.inviteeName ? `, ${inv.inviteeName}` : ""}! Your details have been pre-filled.`,
     });
   }, [codeInput, eventId, form, toast]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const urlCode = searchParams.get("code") || searchParams.get("c") || "";
+    const rawCat = (searchParams.get("g") || searchParams.get("reg") || searchParams.get("category") || searchParams.get("cat") || "").toLowerCase().trim();
+
+    const isIv =
+      rawCat === "iv" ||
+      rawCat === "ivguest" ||
+      rawCat === "invited_guest" ||
+      rawCat === "guest" ||
+      !!urlCode;
+
+    const isStaff = rawCat === "staff" || rawCat === "nimet_staff";
+    const isMedia = rawCat === "media" || rawCat === "media_personality";
+
+    if (isIv) {
+      setSelectedCategory("invited_guest");
+      setIsAutoRecognized(true);
+    } else if (isStaff) {
+      setSelectedCategory("nimet_staff");
+      setIsAutoRecognized(true);
+    } else if (isMedia) {
+      setSelectedCategory("media_personality");
+      setIsAutoRecognized(true);
+    }
+
+    if (urlCode) {
+      setCodeInput(urlCode.toUpperCase());
+      handleVerifyCode(urlCode);
+    }
+  }, [searchParams, handleVerifyCode]);
 
   const clearVerifiedCode = () => {
     setVerifiedInvitation(null);
@@ -139,14 +171,12 @@ export function RegistrationForm({
 
   const handleCategoryChange = (val: string) => {
     setSelectedCategory(val as ParticipantCategory);
-    // Clear code state if switching away from Invited Guest
     if (val !== "invited_guest") {
       clearVerifiedCode();
     }
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // For Invited Guests on invitation-only events, require a verified code
     if (selectedCategory === "invited_guest" && event?.isInvitationOnly && !onSuccessfulOnboarding) {
       if (!verifiedInvitation) {
         toast({
@@ -180,171 +210,270 @@ export function RegistrationForm({
             console.error("Failed to auto-mark attendance", e);
           }
         }
-
         toast({
-          title: "Registration Successful",
-          description: "Participant has been successfully registered and attendance marked.",
+          title: "Participant Added Successfully",
+          description: `${values.name} has been registered and attendance marked.`,
         });
-        form.reset();
-        setSelectedCategory("");
-        clearVerifiedCode();
         onSuccessfulOnboarding();
         return;
       }
 
-      const successUrl = `/register/success?eventId=${eventId}&participantId=${result.participantId || "new"}`;
-      router.push(successUrl);
-    } else {
-      const errorMessage = result.error || "Could not complete your registration. Please try again.";
+      toast({
+        title: "Registration Successful!",
+        description: "Your registration has been submitted. Check your email for your confirmation & QR code.",
+      });
 
-      if (errorMessage.includes("email address has already registered")) {
-        toast({
-          variant: "destructive",
-          title: "Email Already Registered",
-          description: "This email address has already been used to register for this event.",
-        });
-      } else if (errorMessage.includes("phone number has already registered")) {
-        toast({
-          variant: "destructive",
-          title: "Phone Number Already Registered",
-          description: "This phone number has already been used to register for this event.",
-        });
+      if (event?.slug) {
+        router.push(`/${event.slug}?registered=true`);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Registration Failed",
-          description: errorMessage,
-        });
+        router.push(`/events`);
       }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: result.error || "An error occurred while registering. Please try again.",
+      });
     }
   }
 
-  const hasFoodMenu = event?.foodMenu && event.foodMenu.length > 0;
   const showForm = !!selectedCategory;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
 
-        {/* ─── Step 1: Participant Category ─────────────────────────── */}
-        <div className="rounded-lg border-2 border-primary/20 p-5 bg-primary/5 space-y-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="h-5 w-5 text-primary" />
-            <p className="font-semibold text-base">Choose Attendance Category</p>
+        {/* ─── Step 1: Participant Category (RGIS-guided Design) ─────── */}
+        {isAutoRecognized ? (
+          <div className="bg-[#F0F7F4] p-5 md:p-6 rounded-3xl border-2 border-[#006B3E] shadow-xs flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-xs shrink-0">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[#006B3E]">Recognized Invitation Link</span>
+                <h3 className="text-base md:text-lg font-black text-gray-900 leading-tight">
+                  Welcome{verifiedInvitation?.inviteeName ? `, ${verifiedInvitation.inviteeName}` : ""}!
+                </h3>
+                <p className="text-xs text-gray-600 font-medium">
+                  {verifiedInvitation
+                    ? "Your invitation details have been verified and pre-filled below. Please review and complete registration."
+                    : "Your attendance category has been automatically recognized."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAutoRecognized(false)}
+              className="text-xs font-bold text-[#006B3E] hover:underline cursor-pointer"
+            >
+              Change category
+            </button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Select your category to continue with registration.
-          </p>
-          <Select
-            value={selectedCategory}
-            onValueChange={handleCategoryChange}
-          >
-            <SelectTrigger id="participantCategory" className="bg-white">
-              <SelectValue placeholder="— Select a category —" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="invited_guest">Invited Guest</SelectItem>
-              <SelectItem value="nimet_staff">NiMet Staff</SelectItem>
-              <SelectItem value="media_personality">Media Personality</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        ) : (
+          <div className="bg-[#F0F7F4] p-5 md:p-6 rounded-3xl border border-[#C8E6C9] shadow-xs space-y-5">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">Choose Attendance Category</h3>
+                <p className="text-xs md:text-sm text-gray-600 font-medium mt-0.5">
+                  Select your category to continue with registration.
+                </p>
+              </div>
+            </div>
 
-        {/* ─── Step 2: Invitation Code (Invited Guests only) ────────── */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("invited_guest")}
+                className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                  selectedCategory === "invited_guest"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
+                }`}
+              >
+                <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  selectedCategory === 'invited_guest'
+                    ? 'bg-[#006B3E] text-white'
+                    : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+                }`}>
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                    Invited Guest
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                    Official invitation holders
+                  </p>
+                </div>
+                <div
+                  className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "invited_guest"
+                      ? "bg-[#006B3E] text-white"
+                      : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
+                  }`}
+                >
+                  {selectedCategory === "invited_guest" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("nimet_staff")}
+                className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                  selectedCategory === "nimet_staff"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
+                }`}
+              >
+                <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  selectedCategory === 'nimet_staff'
+                    ? 'bg-[#006B3E] text-white'
+                    : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+                }`}>
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                    NiMet Staff
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                    Nigerian Meteorological Agency
+                  </p>
+                </div>
+                <div
+                  className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "nimet_staff"
+                      ? "bg-[#006B3E] text-white"
+                      : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
+                  }`}
+                >
+                  {selectedCategory === "nimet_staff" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("media_personality")}
+                className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                  selectedCategory === "media_personality"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
+                }`}
+              >
+                <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  selectedCategory === 'media_personality'
+                    ? 'bg-[#006B3E] text-white'
+                    : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+                }`}>
+                  <Video className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                    Media Personality
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                    Accredited press & media
+                  </p>
+                </div>
+                <div
+                  className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "media_personality"
+                      ? "bg-[#006B3E] text-white"
+                      : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
+                  }`}
+                >
+                  {selectedCategory === "media_personality" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {selectedCategory && !isAutoRecognized && (
+          <div className="bg-[#F0F7F4] border-l-4 border-[#006B3E] border-y border-r border-[#C8E6C9] text-[#004D2C] p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm animate-in fade-in duration-200 shadow-xs">
+            <CheckCircle2 className="h-5 w-5 text-[#006B3E] shrink-0" />
+            <span>
+              Currently selected:{" "}
+              <strong className="font-black text-[#005430]">{CATEGORY_LABELS[selectedCategory]}</strong>
+            </span>
+          </div>
+        )}
+
         {showForm && selectedCategory === "invited_guest" && (
           <div className="rounded-lg border-2 border-dashed border-primary/30 p-5 bg-primary/5 space-y-3">
             <div className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
               <p className="font-semibold text-base">Enter Your Invitation Code</p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Enter the unique code from your invitation letter or scan the QR/barcode. Your details will be auto-filled.
-            </p>
-
             {verifiedInvitation ? (
-              /* Verified state */
               <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-                <div className="flex-1">
-                  <p className="font-semibold text-green-800 text-sm">Code Verified ✓</p>
-                  <p className="text-xs text-green-700 font-mono">{verifiedInvitation.code}</p>
-                  {verifiedInvitation.inviteeName && (
-                    <p className="text-xs text-green-700 mt-0.5">Details pre-filled for <strong>{verifiedInvitation.inviteeName}</strong></p>
-                  )}
+                <div className="flex-1 text-sm">
+                  <p className="font-bold text-green-800">Code Verified: {verifiedInvitation.code}</p>
+                  <p className="text-green-700 text-xs mt-0.5">
+                    {verifiedInvitation.inviteeName
+                      ? `Pre-filled for ${verifiedInvitation.inviteeName}`
+                      : "Invitation code is valid"}
+                  </p>
                 </div>
-                <Button type="button" variant="ghost" size="icon" onClick={clearVerifiedCode} className="h-7 w-7">
-                  <X className="h-4 w-4" />
+                <Button type="button" variant="ghost" size="sm" onClick={clearVerifiedCode} className="text-xs h-8">
+                  Change Code
                 </Button>
               </div>
             ) : (
-              /* Code entry state */
-              <div className="flex gap-2">
-                <Input
-                  id="invitationCodeInput"
-                  placeholder="e.g. NMT-A3X-9F2B"
-                  value={codeInput}
-                  onChange={(e) => {
-                    setCodeInput(e.target.value.toUpperCase());
-                    setCodeError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleVerifyCode();
-                    }
-                  }}
-                  className={`font-mono tracking-widest ${codeError ? "border-destructive" : ""}`}
-                />
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={() => handleVerifyCode()}
-                  disabled={isVerifyingCode || !codeInput.trim()}
-                >
-                  {isVerifyingCode ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                  <span className="ml-1 hidden sm:inline">Verify</span>
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. NMT-A3X9"
+                    value={codeInput}
+                    onChange={(e) => {
+                      setCodeInput(e.target.value.toUpperCase());
+                      setCodeError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleVerifyCode();
+                      }
+                    }}
+                    className="font-mono text-base tracking-widest uppercase"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleVerifyCode()}
+                    disabled={isVerifyingCode || !codeInput.trim()}
+                    className="shrink-0"
+                  >
+                    {isVerifyingCode ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify Code"
+                    )}
+                  </Button>
+                </div>
+                {codeError && <p className="text-xs text-destructive font-medium">{codeError}</p>}
               </div>
-            )}
-
-            {codeError && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <X className="h-3 w-3" /> {codeError}
-              </p>
             )}
           </div>
         )}
 
-        {/* ─── Main Form Fields (shown once category is selected) ───── */}
         {showForm && (
           <>
-            {/* Full Name */}
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Full Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Surname First" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="08030000000" type="tel" {...field} />
+                    <Input placeholder="Enter your full name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -356,16 +485,32 @@ export function RegistrationForm({
               name="contact"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact Email</FormLabel>
+                  <FormLabel>Email Address *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Email" {...field} />
+                    <Input type="email" placeholder="e.g. name@organization.org" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Your attendance QR code will be sent to this email address.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number *</FormLabel>
+                  <FormControl>
+                    <Input type="tel" placeholder="+234 803 000 0000 or +1 555 000 0000" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* External event fields (Organization, Position) */}
             {!event?.isInternal && (
               <>
                 <FormField
@@ -373,9 +518,9 @@ export function RegistrationForm({
                   name="organization"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Organization</FormLabel>
+                      <FormLabel>Organization / Agency *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Name of your organization" {...field} />
+                        <Input placeholder="e.g. Federal Ministry of Transport, NTA, etc." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -387,7 +532,7 @@ export function RegistrationForm({
                   name="designation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Position / Designation</FormLabel>
+                      <FormLabel>Designation / Title</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. Manager, Director, Officer" {...field} />
                       </FormControl>
@@ -398,7 +543,6 @@ export function RegistrationForm({
               </>
             )}
 
-            {/* Internal event fields (Department, Position) */}
             {event?.isInternal && (
               <>
                 <FormField
@@ -431,42 +575,6 @@ export function RegistrationForm({
               </>
             )}
 
-            {/* ─── Meal Preference ──────────────────────────────────── */}
-            {hasFoodMenu && (
-              <FormField
-                control={form.control}
-                name="mealPreference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meal Preference</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger id="mealPreference">
-                          <SelectValue placeholder="Select your meal preference" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {event!.foodMenu!.map((item) => (
-                          <SelectItem key={item.id} value={item.name}>
-                            <div>
-                              <span>{item.name}</span>
-                              {item.description && (
-                                <span className="text-xs text-muted-foreground ml-2">— {item.description}</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Select the meal option you would prefer at the event.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? "Registering..." : "Register"}
             </Button>
@@ -474,5 +582,23 @@ export function RegistrationForm({
         )}
       </form>
     </Form>
+  );
+}
+
+export function RegistrationForm(props: {
+  eventId: string;
+  event?: Event;
+  onSuccessfulOnboarding?: () => void;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[#006B3E]" />
+        </div>
+      }
+    >
+      <RegistrationFormInner {...props} />
+    </Suspense>
   );
 }
