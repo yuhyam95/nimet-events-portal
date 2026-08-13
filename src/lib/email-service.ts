@@ -11,15 +11,15 @@ const getFromAddress = () => {
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.office365.com',
   port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true' ? true : (process.env.SMTP_SECURITY === 'ssl' || Number(process.env.SMTP_PORT) === 465),
+  secure: false, // STARTTLS — must be false for port 587
+  requireTLS: true, // Force STARTTLS upgrade
   auth: {
     user: process.env.SMTP_USER || process.env.EMAIL_USER || 'support@nimetagency.org.ng',
     pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
   },
   tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false, // Allow self-signed certs on Office 365
+  },
 });
 
 interface RegistrationEmailData {
