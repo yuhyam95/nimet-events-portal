@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { addParticipant, markAttendance, lookupInvitationCode } from "@/lib/actions";
 import type { Event, Invitation } from "@/lib/types";
-import { CheckCircle2, Loader2, QrCode, Search, Users, X } from "lucide-react";
+import { Briefcase, Check, CheckCircle2, Loader2, QrCode, Search, UserCheck, Users, Video, X } from "lucide-react";
 
 type ParticipantCategory = "invited_guest" | "nimet_staff" | "media_personality" | "";
 
@@ -47,8 +47,8 @@ const formSchema = z.object({
   contact: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  phone: z.string().min(11, {
-    message: "Please enter a valid phone number.",
+  phone: z.string().min(6, {
+    message: "Please enter a valid phone number with country code.",
   }),
   isMediaPersonnel: z.boolean().default(false).optional(),
   mealPreference: z.string().optional(),
@@ -226,29 +226,155 @@ export function RegistrationForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
 
-        {/* ─── Step 1: Participant Category ─────────────────────────── */}
-        <div className="rounded-lg border-2 border-primary/20 p-5 bg-primary/5 space-y-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="h-5 w-5 text-primary" />
-            <p className="font-semibold text-base">Choose Attendance Category</p>
+        {/* ─── Step 1: Participant Category (RGIS-guided Design) ─────── */}
+        <div className="bg-[#EBF7EE] p-6 rounded-3xl border border-[#D1EBE0] shadow-sm space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-sm shrink-0">
+              <Users className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">Choose Attendance Category</h3>
+              <p className="text-sm text-gray-600 font-medium mt-0.5">
+                Select your category to continue with registration.
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Select your category to continue with registration.
-          </p>
-          <Select
-            value={selectedCategory}
-            onValueChange={handleCategoryChange}
-          >
-            <SelectTrigger id="participantCategory" className="bg-white">
-              <SelectValue placeholder="— Select a category —" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="invited_guest">Invited Guest</SelectItem>
-              <SelectItem value="nimet_staff">NiMet Staff</SelectItem>
-              <SelectItem value="media_personality">Media Personality</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* 3 Interactive Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 1. Invited Guest */}
+            <button
+              type="button"
+              onClick={() => handleCategoryChange("invited_guest")}
+              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                selectedCategory === "invited_guest"
+                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
+                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "invited_guest"
+                      ? "bg-[#005691] text-white shadow-sm"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <UserCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                    Invited Guest
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                    Official invitation holders
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                  selectedCategory === "invited_guest"
+                    ? "bg-[#005691] text-white shadow-sm"
+                    : "border-2 border-gray-300 bg-white"
+                }`}
+              >
+                {selectedCategory === "invited_guest" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+              </div>
+            </button>
+
+            {/* 2. NiMet Staff */}
+            <button
+              type="button"
+              onClick={() => handleCategoryChange("nimet_staff")}
+              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                selectedCategory === "nimet_staff"
+                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
+                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "nimet_staff"
+                      ? "bg-[#005691] text-white shadow-sm"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <Briefcase className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                    NiMet Staff
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                    Nigerian Meteorological Agency
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                  selectedCategory === "nimet_staff"
+                    ? "bg-[#005691] text-white shadow-sm"
+                    : "border-2 border-gray-300 bg-white"
+                }`}
+              >
+                {selectedCategory === "nimet_staff" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+              </div>
+            </button>
+
+            {/* 3. Media Personality */}
+            <button
+              type="button"
+              onClick={() => handleCategoryChange("media_personality")}
+              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                selectedCategory === "media_personality"
+                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
+                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "media_personality"
+                      ? "bg-[#005691] text-white shadow-sm"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <Video className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                    Media Personality
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                    Accredited press & media
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                  selectedCategory === "media_personality"
+                    ? "bg-[#005691] text-white shadow-sm"
+                    : "border-2 border-gray-300 bg-white"
+                }`}
+              >
+                {selectedCategory === "media_personality" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+              </div>
+            </button>
+          </div>
         </div>
+
+        {/* Currently Selected Banner */}
+        {selectedCategory && (
+          <div className="bg-[#EBF3FA] border border-[#D0E2F4] text-[#004B82] p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm animate-in fade-in duration-200 shadow-xs">
+            <CheckCircle2 className="h-5 w-5 text-[#005691] shrink-0" />
+            <span>
+              Currently selected:{" "}
+              <strong className="font-black text-[#003761]">{CATEGORY_LABELS[selectedCategory]}</strong>
+            </span>
+          </div>
+        )}
 
         {/* ─── Step 2: Invitation Code (Invited Guests only) ────────── */}
         {showForm && selectedCategory === "invited_guest" && (
@@ -344,8 +470,15 @@ export function RegistrationForm({
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="08030000000" type="tel" {...field} />
+                    <Input
+                      placeholder="+234 803 000 0000 or +1 555 000 0000"
+                      type="tel"
+                      {...field}
+                    />
                   </FormControl>
+                  <FormDescription className="text-xs text-muted-foreground">
+                    Include country code for international phone numbers (e.g. +234, +1, +44).
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -429,42 +562,6 @@ export function RegistrationForm({
                   )}
                 />
               </>
-            )}
-
-            {/* ─── Meal Preference ──────────────────────────────────── */}
-            {hasFoodMenu && (
-              <FormField
-                control={form.control}
-                name="mealPreference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meal Preference</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger id="mealPreference">
-                          <SelectValue placeholder="Select your meal preference" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {event!.foodMenu!.map((item) => (
-                          <SelectItem key={item.id} value={item.name}>
-                            <div>
-                              <span>{item.name}</span>
-                              {item.description && (
-                                <span className="text-xs text-muted-foreground ml-2">— {item.description}</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Select the meal option you would prefer at the event.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             )}
 
             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>

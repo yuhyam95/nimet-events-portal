@@ -16,7 +16,7 @@ const ParticipantSchema = z.object({
   department: z.string().optional(),
   position: z.string().optional(),
   contact: z.string().email({ message: "Please enter a valid email address." }),
-  phone: z.string().min(11, { message: "Please enter a valid phone number." }),
+  phone: z.string().min(6, { message: "Please enter a valid phone number." }),
   eventId: z.string(),
   onboardedBy: z.string().optional(),
   onboardingDate: z.string().optional(),
