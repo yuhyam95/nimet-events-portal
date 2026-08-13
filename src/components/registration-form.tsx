@@ -271,14 +271,14 @@ function RegistrationFormInner({
             </button>
           </div>
         ) : (
-          <div className="bg-[#EBF7EE] p-6 md:p-8 rounded-3xl border border-[#D1EBE0] shadow-xs space-y-6">
+          <div className="bg-[#EBF7EE] p-5 md:p-6 rounded-3xl border border-[#D1EBE0] shadow-xs space-y-5">
             {/* Header */}
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-xs shrink-0">
-                <Users className="h-6 w-6" />
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Users className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-xl md:text-[22px] font-bold text-gray-900 tracking-tight">Choose Attendance Category</h3>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">Choose Attendance Category</h3>
                 <p className="text-sm text-gray-600 font-medium mt-0.5">
                   Select your category to continue with registration.
                 </p>
@@ -286,44 +286,38 @@ function RegistrationFormInner({
             </div>
 
             {/* 3 Interactive Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* 1. Invited Guest */}
               <button
                 type="button"
                 onClick={() => handleCategoryChange("invited_guest")}
-                className={`group w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                   selectedCategory === "invited_guest"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
-                <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                  <div
-                    className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                      selectedCategory === "invited_guest"
-                        ? "bg-[#006B3E] text-white"
-                        : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                    }`}
-                  >
-                    <UserCheck className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base md:text-lg text-gray-900 leading-tight">
-                      Invited Guest
-                    </p>
-                    <p className="text-xs md:text-sm text-gray-500 font-normal leading-snug mt-1">
-                      Official invitation holders
-                    </p>
-                  </div>
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "invited_guest"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                  }`}
+                >
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Invited Guest</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Official invitation holders</p>
                 </div>
                 <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "invited_guest"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "invited_guest" && <Check className="h-4 w-4 stroke-[3]" />}
+                  {selectedCategory === "invited_guest" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
 
@@ -331,39 +325,33 @@ function RegistrationFormInner({
               <button
                 type="button"
                 onClick={() => handleCategoryChange("nimet_staff")}
-                className={`group w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                   selectedCategory === "nimet_staff"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
-                <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                  <div
-                    className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                      selectedCategory === "nimet_staff"
-                        ? "bg-[#006B3E] text-white"
-                        : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                    }`}
-                  >
-                    <Briefcase className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base md:text-lg text-gray-900 leading-tight">
-                      NiMet Staff
-                    </p>
-                    <p className="text-xs md:text-sm text-gray-500 font-normal leading-snug mt-1">
-                      Nigerian Meteorological Agency
-                    </p>
-                  </div>
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "nimet_staff"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                  }`}
+                >
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 leading-snug">NiMet Staff</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Nigerian Meteorological Agency</p>
                 </div>
                 <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "nimet_staff"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "nimet_staff" && <Check className="h-4 w-4 stroke-[3]" />}
+                  {selectedCategory === "nimet_staff" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
 
@@ -371,39 +359,33 @@ function RegistrationFormInner({
               <button
                 type="button"
                 onClick={() => handleCategoryChange("media_personality")}
-                className={`group w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                   selectedCategory === "media_personality"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
-                <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                  <div
-                    className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                      selectedCategory === "media_personality"
-                        ? "bg-[#006B3E] text-white"
-                        : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                    }`}
-                  >
-                    <Video className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base md:text-lg text-gray-900 leading-tight">
-                      Media Personality
-                    </p>
-                    <p className="text-xs md:text-sm text-gray-500 font-normal leading-snug mt-1">
-                      Accredited press & media
-                    </p>
-                  </div>
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "media_personality"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                  }`}
+                >
+                  <Video className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Media Personality</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Accredited press & media</p>
                 </div>
                 <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "media_personality"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "media_personality" && <Check className="h-4 w-4 stroke-[3]" />}
+                  {selectedCategory === "media_personality" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
             </div>
