@@ -227,56 +227,56 @@ export function RegistrationForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
 
         {/* ─── Step 1: Participant Category (RGIS-guided Design) ─────── */}
-        <div className="bg-[#EBF7EE] p-6 rounded-3xl border border-[#D1EBE0] shadow-sm space-y-6">
+        <div className="bg-[#F0F7F4] p-5 md:p-6 rounded-3xl border border-[#C8E6C9] shadow-xs space-y-5">
           {/* Header */}
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-sm shrink-0">
-              <Users className="h-6 w-6" />
+          <div className="flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-[#006B3E] text-white flex items-center justify-center shadow-xs shrink-0">
+              <Users className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Choose Attendance Category</h3>
-              <p className="text-sm text-gray-600 font-medium mt-0.5">
+              <h3 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">Choose Attendance Category</h3>
+              <p className="text-xs md:text-sm text-gray-600 font-medium mt-0.5">
                 Select your category to continue with registration.
               </p>
             </div>
           </div>
 
           {/* 3 Interactive Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
             {/* 1. Invited Guest */}
             <button
               type="button"
               onClick={() => handleCategoryChange("invited_guest")}
-              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
                 selectedCategory === "invited_guest"
-                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
-                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+                  ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                  : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div
-                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "invited_guest"
-                      ? "bg-[#005691] text-white shadow-sm"
-                      : "bg-gray-100 text-gray-500"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
                 >
-                  <UserCheck className="h-6 w-6" />
+                  <UserCheck className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
                     Invited Guest
                   </p>
-                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
                     Official invitation holders
                   </p>
                 </div>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
                   selectedCategory === "invited_guest"
-                    ? "bg-[#005691] text-white shadow-sm"
-                    : "border-2 border-gray-300 bg-white"
+                    ? "bg-[#006B3E] text-white"
+                    : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                 }`}
               >
                 {selectedCategory === "invited_guest" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
@@ -287,36 +287,36 @@ export function RegistrationForm({
             <button
               type="button"
               onClick={() => handleCategoryChange("nimet_staff")}
-              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
                 selectedCategory === "nimet_staff"
-                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
-                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+                  ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                  : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div
-                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "nimet_staff"
-                      ? "bg-[#005691] text-white shadow-sm"
-                      : "bg-gray-100 text-gray-500"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
                 >
-                  <Briefcase className="h-6 w-6" />
+                  <Briefcase className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
                     NiMet Staff
                   </p>
-                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
                     Nigerian Meteorological Agency
                   </p>
                 </div>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
                   selectedCategory === "nimet_staff"
-                    ? "bg-[#005691] text-white shadow-sm"
-                    : "border-2 border-gray-300 bg-white"
+                    ? "bg-[#006B3E] text-white"
+                    : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                 }`}
               >
                 {selectedCategory === "nimet_staff" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
@@ -327,36 +327,36 @@ export function RegistrationForm({
             <button
               type="button"
               onClick={() => handleCategoryChange("media_personality")}
-              className={`p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
                 selectedCategory === "media_personality"
-                  ? "bg-white border-[#005691] shadow-md ring-2 ring-[#005691]/20"
-                  : "bg-white border-transparent hover:border-gray-200 shadow-sm"
+                  ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                  : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div
-                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "media_personality"
-                      ? "bg-[#005691] text-white shadow-sm"
-                      : "bg-gray-100 text-gray-500"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
                 >
-                  <Video className="h-6 w-6" />
+                  <Video className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="font-extrabold text-base text-gray-900 leading-tight">
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
                     Media Personality
                   </p>
-                  <p className="text-xs text-gray-500 font-medium mt-1 leading-snug">
+                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
                     Accredited press & media
                   </p>
                 </div>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-2 ${
+                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
                   selectedCategory === "media_personality"
-                    ? "bg-[#005691] text-white shadow-sm"
-                    : "border-2 border-gray-300 bg-white"
+                    ? "bg-[#006B3E] text-white"
+                    : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                 }`}
               >
                 {selectedCategory === "media_personality" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
@@ -367,11 +367,11 @@ export function RegistrationForm({
 
         {/* Currently Selected Banner */}
         {selectedCategory && (
-          <div className="bg-[#EBF3FA] border border-[#D0E2F4] text-[#004B82] p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm animate-in fade-in duration-200 shadow-xs">
-            <CheckCircle2 className="h-5 w-5 text-[#005691] shrink-0" />
+          <div className="bg-[#F0F7F4] border-l-4 border-[#006B3E] border-y border-r border-[#C8E6C9] text-[#004D2C] p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm animate-in fade-in duration-200 shadow-xs">
+            <CheckCircle2 className="h-5 w-5 text-[#006B3E] shrink-0" />
             <span>
               Currently selected:{" "}
-              <strong className="font-black text-[#003761]">{CATEGORY_LABELS[selectedCategory]}</strong>
+              <strong className="font-black text-[#005430]">{CATEGORY_LABELS[selectedCategory]}</strong>
             </span>
           </div>
         )}
