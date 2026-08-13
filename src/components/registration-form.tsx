@@ -247,33 +247,29 @@ export function RegistrationForm({
             <button
               type="button"
               onClick={() => handleCategoryChange("invited_guest")}
-              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+              className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                 selectedCategory === "invited_guest"
                   ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
                   : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div
-                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "invited_guest"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                  }`}
-                >
-                  <UserCheck className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
-                    Invited Guest
-                  </p>
-                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
-                    Official invitation holders
-                  </p>
-                </div>
+              <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                selectedCategory === 'invited_guest'
+                  ? 'bg-[#006B3E] text-white'
+                  : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+              }">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                  Invited Guest
+                </p>
+                <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                  Official invitation holders
+                </p>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                   selectedCategory === "invited_guest"
                     ? "bg-[#006B3E] text-white"
                     : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
@@ -287,33 +283,29 @@ export function RegistrationForm({
             <button
               type="button"
               onClick={() => handleCategoryChange("nimet_staff")}
-              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+              className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                 selectedCategory === "nimet_staff"
                   ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
                   : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div
-                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "nimet_staff"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                  }`}
-                >
-                  <Briefcase className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
-                    NiMet Staff
-                  </p>
-                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
-                    Nigerian Meteorological Agency
-                  </p>
-                </div>
+              <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                selectedCategory === 'nimet_staff'
+                  ? 'bg-[#006B3E] text-white'
+                  : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+              }">
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                  NiMet Staff
+                </p>
+                <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                  Nigerian Meteorological Agency
+                </p>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                   selectedCategory === "nimet_staff"
                     ? "bg-[#006B3E] text-white"
                     : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
@@ -327,33 +319,29 @@ export function RegistrationForm({
             <button
               type="button"
               onClick={() => handleCategoryChange("media_personality")}
-              className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+              className={`group relative w-full p-4 pr-11 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
                 selectedCategory === "media_personality"
                   ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
                   : "bg-white border-gray-100 hover:border-[#006B3E]/60 hover:bg-[#F0F7F4]/40 shadow-xs"
               }`}
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div
-                  className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "media_personality"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
-                  }`}
-                >
-                  <Video className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug">
-                    Media Personality
-                  </p>
-                  <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5">
-                    Accredited press & media
-                  </p>
-                </div>
+              <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                selectedCategory === 'media_personality'
+                  ? 'bg-[#006B3E] text-white'
+                  : 'bg-gray-100 text-gray-400 group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]'
+              }">
+                <Video className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-extrabold text-sm md:text-base text-gray-900 leading-snug break-words">
+                  Media Personality
+                </p>
+                <p className="text-xs text-gray-500 font-medium leading-tight mt-0.5 break-words">
+                  Accredited press & media
+                </p>
               </div>
               <div
-                className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ml-1 transition-colors ${
+                className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                   selectedCategory === "media_personality"
                     ? "bg-[#006B3E] text-white"
                     : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
