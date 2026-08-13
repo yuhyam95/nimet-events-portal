@@ -3,13 +3,23 @@ import QRCode from 'qrcode';
 import type { Event, Participant } from './types';
 import { generateQRCode } from './qr-generator';
 
-// Email configuration
+// Email configuration (Office365 / Standard SMTP)
+const getFromAddress = () => {
+  return process.env.SMTP_FROM || process.env.EMAIL_USER || 'support@nimetagency.org.ng';
+};
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can change this to your preferred email service
+  host: process.env.SMTP_HOST || 'smtp.office365.com',
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURITY === 'ssl' || Number(process.env.SMTP_PORT) === 465, // false for port 587 STARTTLS
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Use app password for Gmail
+    user: process.env.SMTP_USER || process.env.EMAIL_USER || 'support@nimetagency.org.ng',
+    pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
   },
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false
+  }
 });
 
 interface RegistrationEmailData {
@@ -143,7 +153,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
 
     // Send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: getFromAddress(),
       to: data.participantEmail,
       subject: `Registration Confirmed: ${data.event.name}`,
       html: emailHtml,
@@ -173,7 +183,7 @@ export async function sendAttendanceQREmail(data: AttendanceQREmailData): Promis
   try {
     console.log('sendAttendanceQREmail called with participant:', data.participant);
     console.log('Participant ID:', data.participant.id);
-    
+
     // Generate attendance QR code using our custom generator
     // Use id field (same as View QR Code button)
     const participantId = data.participant.id;
@@ -313,7 +323,7 @@ export async function sendAttendanceQREmail(data: AttendanceQREmailData): Promis
 
     // Send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: getFromAddress(),
       to: data.participant.contact.toLowerCase().trim(),
       subject: `Your Attendance QR Code - ${data.event.name}`,
       html: emailHtml,
@@ -343,7 +353,7 @@ export async function sendFollowUpEmail(data: FollowUpEmailData): Promise<void> 
   try {
     console.log('sendFollowUpEmail called with participant:', data.participant);
     console.log('Event:', data.event);
-    
+
     // Create email HTML content
     const emailHtml = `
       <!DOCTYPE html>
@@ -481,7 +491,7 @@ export async function sendFollowUpEmail(data: FollowUpEmailData): Promise<void> 
 
     // Send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: getFromAddress(),
       to: data.participant.contact.toLowerCase().trim(),
       subject: `Thank You for Attending: ${data.event.name}`,
       html: emailHtml,
@@ -501,10 +511,10 @@ function formatEventDate(dateString: string): string {
     const [year, month, day] = dateString.split('-').map(Number);
     if (year && month && day) {
       const date = new Date(year, month - 1, day);
-      const options: Intl.DateTimeFormatOptions = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       };
       return date.toLocaleDateString('en-US', options);
     }
@@ -683,7 +693,7 @@ export async function sendInvitationEmail(data: InvitationEmailData): Promise<vo
     `;
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: getFromAddress(),
       to: data.inviteeEmail,
       subject: `Your Invitation to ${data.event.name}`,
       html: emailHtml,
