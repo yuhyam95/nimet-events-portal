@@ -116,6 +116,7 @@ export function ParticipantList({
     const headers = [
       "S/N",
       "Name",
+      "Category",
       "Organization",
       "Position",
       "Media",
@@ -123,12 +124,21 @@ export function ParticipantList({
       "Phone"
     ];
 
+    const formatCategory = (cat?: string) => {
+      if (cat === "invited_delegate" || cat === "invited_guest") return "Invited Delegate / Participant";
+      if (cat === "alliance_member" || cat === "nimet_staff") return "Alliance Member";
+      if (cat === "speaker") return "Speaker";
+      if (cat === "additional" || cat === "media_personality") return "Additional";
+      return cat || "-";
+    };
+
     const csvContent = [
       `"${eventName}"`,
       headers.join(","),
       ...sortedAndFilteredParticipants.map((participant, index) => [
         index + 1,
         `"${participant.name}"`,
+        `"${formatCategory(participant.participantCategory)}"`,
         `"${participant.isInternal ? "NiMet" : (participant.organization || "-")}"`,
         `"${participant.isInternal ? (participant.position || "-") : (participant.designation || "-")}"`,
         `"${participant.isMediaPersonnel ? "Yes" : "No"}"`,
@@ -629,6 +639,28 @@ export function ParticipantList({
                 ? (participant.position || participant.designation || "-")
                 : (participant.designation || participant.position || "-")}
             </p>
+            <p className="text-sm">
+              <span className="font-semibold">Category: </span>
+              {participant.participantCategory === "invited_delegate" || participant.participantCategory === "invited_guest" ? (
+                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
+                  Invited Delegate
+                </span>
+              ) : participant.participantCategory === "alliance_member" || participant.participantCategory === "nimet_staff" ? (
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
+                  Alliance Member
+                </span>
+              ) : participant.participantCategory === "speaker" ? (
+                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
+                  Speaker
+                </span>
+              ) : participant.participantCategory === "additional" ? (
+                <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
+                  Additional
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-xs">-</span>
+              )}
+            </p>
             {participant.isMediaPersonnel && (
               <p className="text-sm">
                 <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
@@ -695,6 +727,7 @@ export function ParticipantList({
             </TableHead>
             <TableHead className="bg-green-50">S/N</TableHead>
             <SortableHeader sortKey="name">Name</SortableHeader>
+            <TableHead className="bg-green-50">Category</TableHead>
             <SortableHeader sortKey="organization">Organization</SortableHeader>
             <SortableHeader sortKey="designation">Position</SortableHeader>
             <TableHead className="bg-green-50">Media</TableHead>
@@ -717,6 +750,27 @@ export function ParticipantList({
                 </TableCell>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell className="font-medium">{participant.name}</TableCell>
+                <TableCell>
+                  {participant.participantCategory === "invited_delegate" || participant.participantCategory === "invited_guest" ? (
+                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
+                      Delegate
+                    </span>
+                  ) : participant.participantCategory === "alliance_member" || participant.participantCategory === "nimet_staff" ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
+                      Alliance
+                    </span>
+                  ) : participant.participantCategory === "speaker" ? (
+                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
+                      Speaker
+                    </span>
+                  ) : participant.participantCategory === "additional" ? (
+                    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
+                      Additional
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
+                </TableCell>
                 <TableCell>{participant.isInternal ? "NiMet" : (participant.organization || "-")}</TableCell>
                 <TableCell>
                   {participant.isInternal

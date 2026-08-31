@@ -26,13 +26,26 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { addParticipant, markAttendance, lookupInvitationCode } from "@/lib/actions";
 import type { Event, Invitation } from "@/lib/types";
-import { Briefcase, Check, CheckCircle2, Loader2, QrCode, Search, UserCheck, Users, Video, X } from "lucide-react";
+import { Briefcase, Check, CheckCircle2, Loader2, Mic, QrCode, Search, ShieldCheck, UserCheck, UserPlus, Users, Video, X } from "lucide-react";
 
-type ParticipantCategory = "invited_guest" | "nimet_staff" | "media_personality" | "";
+type ParticipantCategory =
+  | "invited_delegate"
+  | "alliance_member"
+  | "speaker"
+  | "additional"
+  | "invited_guest"
+  | "nimet_staff"
+  | "media_personality"
+  | "";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  invited_guest: "Invited Guest",
-  nimet_staff: "NiMet Staff",
+  invited_delegate: "Invited delegates/participants",
+  alliance_member: "Alliance Members",
+  speaker: "Speakers",
+  additional: "Additional",
+  // Backward compatibility
+  invited_guest: "Invited delegates/participants",
+  nimet_staff: "Alliance Members",
   media_personality: "Media Personality",
 };
 
@@ -53,7 +66,7 @@ const formSchema = z.object({
   isMediaPersonnel: z.boolean().default(false).optional(),
   mealPreference: z.string().optional(),
   invitationCode: z.string().optional(),
-  participantCategory: z.enum(["invited_guest", "nimet_staff", "media_personality"]).optional(),
+  participantCategory: z.string().optional(),
 });
 
 function RegistrationFormInner({
@@ -138,19 +151,48 @@ function RegistrationFormInner({
       rawCat === "ivguest" ||
       rawCat === "invited_guest" ||
       rawCat === "guest" ||
+      rawCat === "delegate" ||
+      rawCat === "delegates" ||
+      rawCat === "invited_delegate" ||
+      rawCat === "invited_delegates" ||
+      rawCat === "participant" ||
+      rawCat === "participants" ||
+      rawCat === "invited_participant" ||
       !!urlCode;
 
-    const isStaff = rawCat === "staff" || rawCat === "nimet_staff";
-    const isMedia = rawCat === "media" || rawCat === "media_personality";
+    const isAlliance =
+      rawCat === "alliance" ||
+      rawCat === "alliance_member" ||
+      rawCat === "alliance_members" ||
+      rawCat === "member" ||
+      rawCat === "members" ||
+      rawCat === "staff" ||
+      rawCat === "nimet_staff";
+
+    const isSpeaker =
+      rawCat === "speaker" ||
+      rawCat === "speakers" ||
+      rawCat === "presenter" ||
+      rawCat === "panelist";
+
+    const isAdditional =
+      rawCat === "additional" ||
+      rawCat === "other" ||
+      rawCat === "others" ||
+      rawCat === "media" ||
+      rawCat === "media_personality";
 
     if (isIv) {
-      setSelectedCategory("invited_guest");
+      setSelectedCategory("invited_delegate");
       setIsAutoRecognized(true);
-    } else if (isStaff) {
-      setSelectedCategory("nimet_staff");
+    } else if (isAlliance) {
+      setSelectedCategory("alliance_member");
       setIsAutoRecognized(true);
-    } else if (isMedia) {
-      setSelectedCategory("media_personality");
+    } else if (isSpeaker) {
+      setSelectedCategory("speaker");
+      setIsAutoRecognized(true);
+    } else if (isAdditional) {
+      setSelectedCategory("additional");
       setIsAutoRecognized(true);
     }
 
@@ -171,13 +213,14 @@ function RegistrationFormInner({
 
   const handleCategoryChange = (val: string) => {
     setSelectedCategory(val as ParticipantCategory);
-    if (val !== "invited_guest") {
+    if (val !== "invited_delegate" && val !== "invited_guest") {
       clearVerifiedCode();
     }
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (selectedCategory === "invited_guest" && event?.isInvitationOnly && !onSuccessfulOnboarding) {
+    const isInvited = selectedCategory === "invited_delegate" || selectedCategory === "invited_guest";
+    if (isInvited && event?.isInvitationOnly && !onSuccessfulOnboarding) {
       if (!verifiedInvitation) {
         toast({
           variant: "destructive",
@@ -238,12 +281,13 @@ function RegistrationFormInner({
   }
 
   const showForm = !!selectedCategory;
+  const isInvitedCategory = selectedCategory === "invited_delegate" || selectedCategory === "invited_guest";
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
 
-        {/* ─── Step 1: Participant Category (RGIS-guided Design) ─────── */}
+        {/* ─── Step 1: Participant Category ─────── */}
         {isAutoRecognized ? (
           <div className="bg-[#F0F7F4] p-5 md:p-6 rounded-3xl border-2 border-[#006B3E] shadow-xs flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3.5">
@@ -285,21 +329,21 @@ function RegistrationFormInner({
               </div>
             </div>
 
-            {/* 3 Interactive Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {/* 1. Invited Guest */}
+            {/* 4 Interactive Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* 1. Invited delegates/participants */}
               <button
                 type="button"
-                onClick={() => handleCategoryChange("invited_guest")}
+                onClick={() => handleCategoryChange("invited_delegate")}
                 className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
-                  selectedCategory === "invited_guest"
+                  selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
                     ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
                 <div
                   className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "invited_guest"
+                    selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
                       ? "bg-[#006B3E] text-white"
                       : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
@@ -307,85 +351,119 @@ function RegistrationFormInner({
                   <UserCheck className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Invited Guest</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Official invitation holders</p>
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Invited delegates / participants</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Official delegates & invited guests</p>
                 </div>
                 <div
                   className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "invited_guest"
+                    selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "invited_guest" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                  {(selectedCategory === "invited_delegate" || selectedCategory === "invited_guest") && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
 
-              {/* 2. NiMet Staff */}
+              {/* 2. Alliance Members */}
               <button
                 type="button"
-                onClick={() => handleCategoryChange("nimet_staff")}
+                onClick={() => handleCategoryChange("alliance_member")}
                 className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
-                  selectedCategory === "nimet_staff"
+                  selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
                     ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
                 <div
                   className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "nimet_staff"
+                    selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
                       ? "bg-[#006B3E] text-white"
                       : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
                 >
-                  <Briefcase className="h-5 w-5" />
+                  <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">NiMet Staff</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Nigerian Meteorological Agency</p>
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Alliance Members</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Partner alliance organizations</p>
                 </div>
                 <div
                   className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "nimet_staff"
+                    selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "nimet_staff" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                  {(selectedCategory === "alliance_member" || selectedCategory === "nimet_staff") && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
 
-              {/* 3. Media Personality */}
+              {/* 3. Speakers */}
               <button
                 type="button"
-                onClick={() => handleCategoryChange("media_personality")}
+                onClick={() => handleCategoryChange("speaker")}
                 className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
-                  selectedCategory === "media_personality"
+                  selectedCategory === "speaker"
                     ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
                     : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
                 }`}
               >
                 <div
                   className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "media_personality"
+                    selectedCategory === "speaker"
                       ? "bg-[#006B3E] text-white"
                       : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
                   }`}
                 >
-                  <Video className="h-5 w-5" />
+                  <Mic className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Media Personality</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Accredited press & media</p>
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Speakers</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Keynotes, presenters & panelists</p>
                 </div>
                 <div
                   className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                    selectedCategory === "media_personality"
+                    selectedCategory === "speaker"
                       ? "bg-[#006B3E] text-white"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
-                  {selectedCategory === "media_personality" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                  {selectedCategory === "speaker" && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                </div>
+              </button>
+
+              {/* 4. Additional */}
+              <button
+                type="button"
+                onClick={() => handleCategoryChange("additional")}
+                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                  selectedCategory === "additional" || selectedCategory === "media_personality"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
+                    : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
+                }`}
+              >
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "additional" || selectedCategory === "media_personality"
+                      ? "bg-[#006B3E] text-white"
+                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                  }`}
+                >
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-gray-900 leading-snug">Additional</p>
+                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Other attendees & observers</p>
+                </div>
+                <div
+                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    selectedCategory === "additional" || selectedCategory === "media_personality"
+                      ? "bg-[#006B3E] text-white"
+                      : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
+                  }`}
+                >
+                  {(selectedCategory === "additional" || selectedCategory === "media_personality") && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </div>
               </button>
             </div>
@@ -397,12 +475,12 @@ function RegistrationFormInner({
             <CheckCircle2 className="h-5 w-5 text-[#006B3E] shrink-0" />
             <span>
               Currently selected:{" "}
-              <strong className="font-black text-[#005430]">{CATEGORY_LABELS[selectedCategory]}</strong>
+              <strong className="font-black text-[#005430]">{CATEGORY_LABELS[selectedCategory] || selectedCategory}</strong>
             </span>
           </div>
         )}
 
-        {showForm && selectedCategory === "invited_guest" && (
+        {showForm && isInvitedCategory && (
           <div className="rounded-lg border-2 border-dashed border-primary/30 p-5 bg-primary/5 space-y-3">
             <div className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
