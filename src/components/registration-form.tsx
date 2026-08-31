@@ -329,35 +329,39 @@ function RegistrationFormInner({
               </div>
             </div>
 
-            {/* 4 Interactive Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 4 Interactive Cards in a clean, spacious 2x2 grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
               {/* 1. Invited delegates/participants */}
               <button
                 type="button"
                 onClick={() => handleCategoryChange("invited_delegate")}
-                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                className={`group w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-start gap-4 cursor-pointer relative ${
                   selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
-                    : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white/95 border-gray-200/90 hover:border-[#006B3E]/50 hover:bg-white hover:shadow-sm"
                 }`}
               >
                 <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                      ? "bg-[#006B3E] text-white shadow-xs"
+                      : "bg-[#EBF7EE] text-[#006B3E] group-hover:bg-[#006B3E] group-hover:text-white"
                   }`}
                 >
-                  <UserCheck className="h-5 w-5" />
+                  <UserCheck className="h-6 w-6" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Invited delegates / participants</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Official delegates & invited guests</p>
+                <div className="flex-1 min-w-0 pr-6">
+                  <p className="font-bold text-base text-gray-900 leading-snug">
+                    Invited delegates / participants
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mt-1">
+                    Official delegates, dignitaries & invited attendees
+                  </p>
                 </div>
                 <div
-                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={`absolute top-4 right-4 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     selectedCategory === "invited_delegate" || selectedCategory === "invited_guest"
-                      ? "bg-[#006B3E] text-white"
+                      ? "bg-[#006B3E] text-white ring-2 ring-[#006B3E]/20 scale-105"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
@@ -369,29 +373,33 @@ function RegistrationFormInner({
               <button
                 type="button"
                 onClick={() => handleCategoryChange("alliance_member")}
-                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                className={`group w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-start gap-4 cursor-pointer relative ${
                   selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
-                    : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white/95 border-gray-200/90 hover:border-[#006B3E]/50 hover:bg-white hover:shadow-sm"
                 }`}
               >
                 <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                      ? "bg-[#006B3E] text-white shadow-xs"
+                      : "bg-[#EBF7EE] text-[#006B3E] group-hover:bg-[#006B3E] group-hover:text-white"
                   }`}
                 >
-                  <ShieldCheck className="h-5 w-5" />
+                  <ShieldCheck className="h-6 w-6" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Alliance Members</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Partner alliance organizations</p>
+                <div className="flex-1 min-w-0 pr-6">
+                  <p className="font-bold text-base text-gray-900 leading-snug">
+                    Alliance Members
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mt-1">
+                    Partner institutions, agencies & alliance representatives
+                  </p>
                 </div>
                 <div
-                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={`absolute top-4 right-4 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     selectedCategory === "alliance_member" || selectedCategory === "nimet_staff"
-                      ? "bg-[#006B3E] text-white"
+                      ? "bg-[#006B3E] text-white ring-2 ring-[#006B3E]/20 scale-105"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
@@ -403,29 +411,33 @@ function RegistrationFormInner({
               <button
                 type="button"
                 onClick={() => handleCategoryChange("speaker")}
-                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                className={`group w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-start gap-4 cursor-pointer relative ${
                   selectedCategory === "speaker"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
-                    : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white/95 border-gray-200/90 hover:border-[#006B3E]/50 hover:bg-white hover:shadow-sm"
                 }`}
               >
                 <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "speaker"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                      ? "bg-[#006B3E] text-white shadow-xs"
+                      : "bg-[#EBF7EE] text-[#006B3E] group-hover:bg-[#006B3E] group-hover:text-white"
                   }`}
                 >
-                  <Mic className="h-5 w-5" />
+                  <Mic className="h-6 w-6" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Speakers</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Keynotes, presenters & panelists</p>
+                <div className="flex-1 min-w-0 pr-6">
+                  <p className="font-bold text-base text-gray-900 leading-snug">
+                    Speakers
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mt-1">
+                    Keynote speakers, presenters, session chairs & panelists
+                  </p>
                 </div>
                 <div
-                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={`absolute top-4 right-4 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     selectedCategory === "speaker"
-                      ? "bg-[#006B3E] text-white"
+                      ? "bg-[#006B3E] text-white ring-2 ring-[#006B3E]/20 scale-105"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
@@ -437,29 +449,33 @@ function RegistrationFormInner({
               <button
                 type="button"
                 onClick={() => handleCategoryChange("additional")}
-                className={`group w-full p-4 rounded-2xl border-2 text-left transition-all duration-200 flex items-center gap-3 cursor-pointer ${
+                className={`group w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all duration-200 flex items-start gap-4 cursor-pointer relative ${
                   selectedCategory === "additional" || selectedCategory === "media_personality"
-                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/10"
-                    : "bg-white border-transparent hover:border-[#006B3E]/40 shadow-xs"
+                    ? "bg-white border-[#006B3E] shadow-md ring-2 ring-[#006B3E]/15"
+                    : "bg-white/95 border-gray-200/90 hover:border-[#006B3E]/50 hover:bg-white hover:shadow-sm"
                 }`}
               >
                 <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                     selectedCategory === "additional" || selectedCategory === "media_personality"
-                      ? "bg-[#006B3E] text-white"
-                      : "bg-[#F1F5F9] text-[#64748B] group-hover:text-[#006B3E] group-hover:bg-[#E8F5E9]"
+                      ? "bg-[#006B3E] text-white shadow-xs"
+                      : "bg-[#EBF7EE] text-[#006B3E] group-hover:bg-[#006B3E] group-hover:text-white"
                   }`}
                 >
-                  <UserPlus className="h-5 w-5" />
+                  <UserPlus className="h-6 w-6" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-gray-900 leading-snug">Additional</p>
-                  <p className="text-xs text-gray-500 leading-snug mt-0.5">Other attendees & observers</p>
+                <div className="flex-1 min-w-0 pr-6">
+                  <p className="font-bold text-base text-gray-900 leading-snug">
+                    Additional
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mt-1">
+                    Accredited media, observers & general event attendees
+                  </p>
                 </div>
                 <div
-                  className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={`absolute top-4 right-4 h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
                     selectedCategory === "additional" || selectedCategory === "media_personality"
-                      ? "bg-[#006B3E] text-white"
+                      ? "bg-[#006B3E] text-white ring-2 ring-[#006B3E]/20 scale-105"
                       : "border-2 border-gray-300 bg-white group-hover:border-[#006B3E]"
                   }`}
                 >
