@@ -63,6 +63,7 @@ export interface Participant {
   onboardedBy?: string; // ID of the staff who onboarded this participant
   onboardingDate?: string; // Date when manual onboarding happened
   isMediaPersonnel?: boolean; // Whether the participant is a media personnel
+  participantCategory?: string; // e.g. invited_delegate, alliance_member, speaker, additional
   mealPreference?: string; // Meal selection if event has a food menu
   invitationId?: string; // Linked invitation ID if registered via unique invite
 }
@@ -92,6 +93,7 @@ export interface Attendance {
   signedBy?: string; // Name of the user who onboarded the participant or 'Self'
   participantPosition?: string; // Position or designation of the participant
   isMediaPersonnel?: boolean; // Whether the participant is a media personnel
+  participantCategory?: string; // Category of the participant
 }
 
 export type UserRole = 'admin' | 'scan_admin' | 'user';

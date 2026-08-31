@@ -24,7 +24,15 @@ const ParticipantSchema = z.object({
   isMediaPersonnel: z.boolean().optional(),
   mealPreference: z.string().optional(),
   invitationId: z.string().optional(),
-  participantCategory: z.enum(['invited_guest', 'nimet_staff', 'media_personality']).optional(),
+  participantCategory: z.enum([
+    'invited_delegate',
+    'alliance_member',
+    'speaker',
+    'additional',
+    'invited_guest',
+    'nimet_staff',
+    'media_personality'
+  ]).optional(),
 });
 
 const EventSchema = z.object({
@@ -497,7 +505,9 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         isInternal: event.isInternal,
         onboardedBy: p.onboardedBy,
         onboardingDate: p.onboardingDate,
-        isMediaPersonnel: p.isMediaPersonnel
+        isMediaPersonnel: p.isMediaPersonnel,
+        participantCategory: p.participantCategory,
+        mealPreference: p.mealPreference
       };
     });
   } catch (error) {
@@ -544,7 +554,9 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       isInternal: isInternal,
       onboardedBy: p.onboardedBy,
       onboardingDate: p.onboardingDate,
-      isMediaPersonnel: p.isMediaPersonnel
+      isMediaPersonnel: p.isMediaPersonnel,
+      participantCategory: p.participantCategory,
+      mealPreference: p.mealPreference
     }));
   } catch (error) {
     console.error("Error fetching participants for event:", error);
@@ -1300,7 +1312,8 @@ export async function getAttendanceByEventId(eventId: string, attendanceDate?: s
           ? participant.position
           : (participant?.designation || ""),
         signedBy: signedByName,
-        isMediaPersonnel: participant?.isMediaPersonnel || false
+        isMediaPersonnel: participant?.isMediaPersonnel || false,
+        participantCategory: participant?.participantCategory
       };
     });
   } catch (error) {
