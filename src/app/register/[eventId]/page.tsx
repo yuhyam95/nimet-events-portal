@@ -86,7 +86,7 @@ export default async function RegisterPage({ params }: { params: Promise<{ event
         <div className="absolute top-[55%] left-[30%] w-5 h-5 bg-primary/50 rounded-full" />
       </div>
 
-      <div className="w-full max-w-2xl relative z-10">
+      <div className="w-full max-w-3xl relative z-10">
         <Card className="shadow-2xl border-primary/10 backdrop-blur-sm bg-card/95">
           <CardHeader className="text-center pb-2">
             <div className="flex justify-center mb-6">
