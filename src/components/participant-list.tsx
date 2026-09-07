@@ -35,9 +35,14 @@ import {
   QrCode,
   Mail,
   Send,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  CheckCheck,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
-import { sendQRCodeToParticipant, sendQRCodesToAllParticipants, sendFollowUpToParticipant, sendFollowUpToAllParticipants } from "@/lib/actions";
+import { sendQRCodeToParticipant, sendQRCodesToAllParticipants, sendFollowUpToParticipant, sendFollowUpToAllParticipants, approveRegistration, bulkApproveRegistrations, rejectRegistration } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
@@ -97,6 +102,12 @@ export function ParticipantList({
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
+  // Approval workflow state
+  const [activeTab, setActiveTab] = React.useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [isApprovingIds, setIsApprovingIds] = React.useState<Set<string>>(new Set());
+  const [isRejectingIds, setIsRejectingIds] = React.useState<Set<string>>(new Set());
+  const [isBulkApproving, setIsBulkApproving] = React.useState(false);
+
   const handleSort = (key: SortKey) => {
     let direction: "ascending" | "descending" = "ascending";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "ascending") {
@@ -126,9 +137,12 @@ export function ParticipantList({
 
     const formatCategory = (cat?: string) => {
       if (cat === "invited_delegate" || cat === "invited_guest") return "Invited Delegate / Participant";
-      if (cat === "alliance_member" || cat === "nimet_staff") return "Alliance Member";
+      if (cat === "alliance_member") return "Alliance Member";
       if (cat === "speaker") return "Speaker";
-      if (cat === "additional" || cat === "media_personality") return "Additional";
+      if (cat === "nimet_staff") return "NiMet Staff";
+      if (cat === "accredited_media" || cat === "media_personality") return "Accredited Media";
+      if (cat === "observer") return "Observer";
+      if (cat === "general_attendee" || cat === "additional") return "General Event Attendee";
       return cat || "-";
     };
 
@@ -388,6 +402,71 @@ export function ParticipantList({
     }
   };
 
+  const handleApprove = async (participantId: string) => {
+    setIsApprovingIds(prev => new Set(prev).add(participantId));
+    try {
+      const result = await approveRegistration(participantId);
+      if (result.success) {
+        setParticipants(prev =>
+          prev.map(p => p.id === participantId ? { ...p, registrationStatus: 'approved' as const, qrEmailSent: true } : p)
+        );
+        toast({ title: "Registration Approved", description: "QR code email has been sent to the participant." });
+      } else {
+        toast({ variant: "destructive", title: "Approval Failed", description: result.error || "Could not approve registration." });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to approve registration. Please try again." });
+    } finally {
+      setIsApprovingIds(prev => { const s = new Set(prev); s.delete(participantId); return s; });
+    }
+  };
+
+  const handleReject = async (participantId: string) => {
+    setIsRejectingIds(prev => new Set(prev).add(participantId));
+    try {
+      const result = await rejectRegistration(participantId);
+      if (result.success) {
+        setParticipants(prev =>
+          prev.map(p => p.id === participantId ? { ...p, registrationStatus: 'rejected' as const } : p)
+        );
+        toast({ title: "Registration Rejected", description: "The registration has been marked as rejected." });
+      } else {
+        toast({ variant: "destructive", title: "Rejection Failed", description: result.error || "Could not reject registration." });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to reject registration. Please try again." });
+    } finally {
+      setIsRejectingIds(prev => { const s = new Set(prev); s.delete(participantId); return s; });
+    }
+  };
+
+  const handleBulkApproveSelected = async () => {
+    const pendingSelected = [...selectedParticipants].filter(id => {
+      const p = participants.find(p => p.id === id);
+      return p?.registrationStatus === 'pending';
+    });
+    if (pendingSelected.length === 0) {
+      toast({ variant: "destructive", title: "No Pending Selected", description: "Please select pending registrations to approve." });
+      return;
+    }
+    setIsBulkApproving(true);
+    try {
+      const result = await bulkApproveRegistrations(pendingSelected);
+      setParticipants(prev =>
+        prev.map(p => pendingSelected.includes(p.id) ? { ...p, registrationStatus: 'approved' as const, qrEmailSent: true } : p)
+      );
+      toast({
+        title: "Bulk Approval Complete",
+        description: `${result.approved} approved, ${result.failed} failed. QR emails sent to approved participants.`,
+      });
+      setSelectedParticipants(new Set());
+    } catch {
+      toast({ variant: "destructive", title: "Bulk Approval Failed", description: "An error occurred during bulk approval." });
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
+
   const handleSendFollowUpToSelected = async () => {
     if (selectedParticipants.size === 0) {
       toast({
@@ -508,8 +587,21 @@ export function ParticipantList({
     }
   };
 
+  const pendingCount = React.useMemo(() => participants.filter(p => (p.registrationStatus || 'approved') === 'pending').length, [participants]);
+  const approvedCount = React.useMemo(() => participants.filter(p => (p.registrationStatus || 'approved') === 'approved').length, [participants]);
+  const rejectedCount = React.useMemo(() => participants.filter(p => p.registrationStatus === 'rejected').length, [participants]);
+
   const sortedAndFilteredParticipants = React.useMemo(() => {
     let sortableItems = [...participants];
+
+    // Filter by active tab
+    if (activeTab !== 'all') {
+      sortableItems = sortableItems.filter(p => {
+        const status = p.registrationStatus || 'approved';
+        return status === activeTab;
+      });
+    }
+
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         // For Position column, use position for internal events and designation for external events
@@ -539,7 +631,7 @@ export function ParticipantList({
         String(value).toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
-  }, [participants, searchQuery, sortConfig]);
+  }, [participants, searchQuery, sortConfig, activeTab]);
 
   const handleGenerateTag = async (participant: Participant & { eventName: string; eventStartDate: string; eventEndDate: string; eventTheme: string; eventLocation: string; isInternal: boolean }) => {
     setSelectedParticipant(participant);
@@ -629,6 +721,22 @@ export function ParticipantList({
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
+            {/* Registration Status Badge (mobile) */}
+            <div className="mb-1">
+              {(participant.registrationStatus || 'approved') === 'pending' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  <Clock className="h-3 w-3" />Pending Approval
+                </span>
+              ) : participant.registrationStatus === 'rejected' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">
+                  <XCircle className="h-3 w-3" />Rejected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
+                  <CheckCircle className="h-3 w-3" />Approved
+                </span>
+              )}
+            </div>
             <p className="text-sm">
               <span className="font-semibold">Organization: </span>
               {participant.isInternal ? "NiMet" : (participant.organization || "-")}
@@ -642,21 +750,19 @@ export function ParticipantList({
             <p className="text-sm">
               <span className="font-semibold">Category: </span>
               {participant.participantCategory === "invited_delegate" || participant.participantCategory === "invited_guest" ? (
-                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
-                  Invited Delegate
-                </span>
-              ) : participant.participantCategory === "alliance_member" || participant.participantCategory === "nimet_staff" ? (
-                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
-                  Alliance Member
-                </span>
+                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">Invited Delegate</span>
+              ) : participant.participantCategory === "alliance_member" ? (
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">Alliance Member</span>
               ) : participant.participantCategory === "speaker" ? (
-                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
-                  Speaker
-                </span>
-              ) : participant.participantCategory === "additional" ? (
-                <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
-                  Additional
-                </span>
+                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">Speaker</span>
+              ) : participant.participantCategory === "nimet_staff" ? (
+                <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-700/20">NiMet Staff</span>
+              ) : participant.participantCategory === "accredited_media" || participant.participantCategory === "media_personality" ? (
+                <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-700/20">Accredited Media</span>
+              ) : participant.participantCategory === "observer" ? (
+                <span className="inline-flex items-center rounded-md bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 ring-1 ring-inset ring-cyan-700/20">Observer</span>
+              ) : participant.participantCategory === "general_attendee" || participant.participantCategory === "additional" ? (
+                <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">General Attendee</span>
               ) : (
                 <span className="text-muted-foreground text-xs">-</span>
               )}
@@ -677,6 +783,31 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex flex-col gap-2 mt-4">
+              {/* Approve / Reject buttons — mobile, only for pending */}
+              {(participant.registrationStatus || 'approved') === 'pending' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50"
+                    onClick={() => handleApprove(participant.id)}
+                    disabled={isApprovingIds.has(participant.id)}
+                  >
+                    {isApprovingIds.has(participant.id) ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-1 h-4 w-4" />}
+                    Approve
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
+                    onClick={() => handleReject(participant.id)}
+                    disabled={isRejectingIds.has(participant.id)}
+                  >
+                    {isRejectingIds.has(participant.id) ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <XCircle className="mr-1 h-4 w-4" />}
+                    Reject
+                  </Button>
+                </div>
+              )}
               <Button
                 variant="default"
                 size="sm"
@@ -727,6 +858,7 @@ export function ParticipantList({
             </TableHead>
             <TableHead className="bg-green-50">S/N</TableHead>
             <SortableHeader sortKey="name">Name</SortableHeader>
+            <TableHead className="bg-green-50">Status</TableHead>
             <TableHead className="bg-green-50">Category</TableHead>
             <SortableHeader sortKey="organization">Organization</SortableHeader>
             <SortableHeader sortKey="designation">Position</SortableHeader>
@@ -750,23 +882,37 @@ export function ParticipantList({
                 </TableCell>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell className="font-medium">{participant.name}</TableCell>
+                {/* Registration Status Badge */}
+                <TableCell>
+                  {(participant.registrationStatus || 'approved') === 'pending' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                      <Clock className="h-3 w-3" />Pending
+                    </span>
+                  ) : participant.registrationStatus === 'rejected' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">
+                      <XCircle className="h-3 w-3" />Rejected
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
+                      <CheckCircle className="h-3 w-3" />Approved
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>
                   {participant.participantCategory === "invited_delegate" || participant.participantCategory === "invited_guest" ? (
-                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
-                      Delegate
-                    </span>
-                  ) : participant.participantCategory === "alliance_member" || participant.participantCategory === "nimet_staff" ? (
-                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
-                      Alliance
-                    </span>
+                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">Delegate</span>
+                  ) : participant.participantCategory === "alliance_member" ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">Alliance</span>
                   ) : participant.participantCategory === "speaker" ? (
-                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
-                      Speaker
-                    </span>
-                  ) : participant.participantCategory === "additional" ? (
-                    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
-                      Additional
-                    </span>
+                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">Speaker</span>
+                  ) : participant.participantCategory === "nimet_staff" ? (
+                    <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-700/20">NiMet Staff</span>
+                  ) : participant.participantCategory === "accredited_media" || participant.participantCategory === "media_personality" ? (
+                    <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-700/20">Accredited Media</span>
+                  ) : participant.participantCategory === "observer" ? (
+                    <span className="inline-flex items-center rounded-md bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 ring-1 ring-inset ring-cyan-700/20">Observer</span>
+                  ) : participant.participantCategory === "general_attendee" || participant.participantCategory === "additional" ? (
+                    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">General Attendee</span>
                   ) : (
                     <span className="text-muted-foreground text-xs">-</span>
                   )}
@@ -788,6 +934,31 @@ export function ParticipantList({
                 <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-2">
+                    {/* Approve / Reject — only for pending registrations */}
+                    {(participant.registrationStatus || 'approved') === 'pending' && (
+                      <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50"
+                          onClick={() => handleApprove(participant.id)}
+                          disabled={isApprovingIds.has(participant.id)}
+                        >
+                          {isApprovingIds.has(participant.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                          {isApprovingIds.has(participant.id) ? "Approving..." : "Approve"}
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50"
+                          onClick={() => handleReject(participant.id)}
+                          disabled={isRejectingIds.has(participant.id)}
+                        >
+                          {isRejectingIds.has(participant.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                          {isRejectingIds.has(participant.id) ? "Rejecting..." : "Reject"}
+                        </Button>
+                      </>
+                    )}
                     <Button variant="default" size="sm" className="w-full bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium" onClick={() => handleGenerateTag(participant)}>
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generate Flyer
@@ -812,7 +983,7 @@ export function ParticipantList({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={10} className="h-24 text-center">
                 No results found.
               </TableCell>
             </TableRow>
@@ -827,8 +998,37 @@ export function ParticipantList({
       <div className="mb-6">
         <h2 className="text-2xl font-bold font-headline">{eventName}</h2>
         <p className="text-muted-foreground mt-1">
-          {sortedAndFilteredParticipants.length} participant{sortedAndFilteredParticipants.length !== 1 ? 's' : ''}
+          {participants.length} total participant{participants.length !== 1 ? 's' : ''}
         </p>
+      </div>
+
+      {/* Registration Status Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {(['all', 'pending', 'approved', 'rejected'] as const).map(tab => {
+          const count = tab === 'all' ? participants.length : tab === 'pending' ? pendingCount : tab === 'approved' ? approvedCount : rejectedCount;
+          const isActive = activeTab === tab;
+          const colors: Record<string, string> = {
+            all: isActive ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+            pending: isActive ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200',
+            approved: isActive ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200',
+            rejected: isActive ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200',
+          };
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-150 shrink-0 ${colors[tab]}`}
+            >
+              {tab === 'pending' && <Clock className="h-3.5 w-3.5" />}
+              {tab === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
+              {tab === 'rejected' && <XCircle className="h-3.5 w-3.5" />}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                isActive ? 'bg-white/20 text-white' : 'bg-white/70'
+              }`}>{count}</span>
+            </button>
+          );
+        })}
       </div>
       {/* Search bar - full width on mobile, inline on desktop */}
       <div className="py-4 md:hidden">
@@ -885,6 +1085,19 @@ export function ParticipantList({
           <Download className="h-4 w-4" />
           Export CSV
         </Button>
+        {/* Bulk Approve — only shown when pending participants are selected */}
+        {[...selectedParticipants].some(id => participants.find(p => p.id === id)?.registrationStatus === 'pending') && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleBulkApproveSelected}
+            disabled={isBulkApproving}
+            className="flex items-center gap-2 flex-shrink-0 bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isBulkApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+            {isBulkApproving ? "Approving..." : `Approve Selected (${[...selectedParticipants].filter(id => participants.find(p => p.id === id)?.registrationStatus === 'pending').length})`}
+          </Button>
+        )}
         <Button
           variant="default"
           size="sm"

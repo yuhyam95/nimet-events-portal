@@ -88,9 +88,12 @@ export function AttendanceList({
 
     const formatCategory = (cat?: string) => {
       if (cat === "invited_delegate" || cat === "invited_guest") return "Invited Delegate / Participant";
-      if (cat === "alliance_member" || cat === "nimet_staff") return "Alliance Member";
+      if (cat === "alliance_member") return "Alliance Member";
       if (cat === "speaker") return "Speaker";
-      if (cat === "additional" || cat === "media_personality") return "Additional";
+      if (cat === "nimet_staff") return "NiMet Staff";
+      if (cat === "accredited_media" || cat === "media_personality") return "Accredited Media";
+      if (cat === "observer") return "Observer";
+      if (cat === "general_attendee" || cat === "additional") return "General Event Attendee";
       return cat || "-";
     };
 
@@ -152,21 +155,19 @@ export function AttendanceList({
             <p className="text-sm">
               <span className="font-semibold">Category: </span>
               {record.participantCategory === "invited_delegate" || record.participantCategory === "invited_guest" ? (
-                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
-                  Invited Delegate
-                </span>
-              ) : record.participantCategory === "alliance_member" || record.participantCategory === "nimet_staff" ? (
-                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
-                  Alliance Member
-                </span>
+                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">Invited Delegate</span>
+              ) : record.participantCategory === "alliance_member" ? (
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">Alliance Member</span>
               ) : record.participantCategory === "speaker" ? (
-                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
-                  Speaker
-                </span>
-              ) : record.participantCategory === "additional" ? (
-                <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
-                  Additional
-                </span>
+                <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">Speaker</span>
+              ) : record.participantCategory === "nimet_staff" ? (
+                <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-700/20">NiMet Staff</span>
+              ) : record.participantCategory === "accredited_media" || record.participantCategory === "media_personality" ? (
+                <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-700/20">Accredited Media</span>
+              ) : record.participantCategory === "observer" ? (
+                <span className="inline-flex items-center rounded-md bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 ring-1 ring-inset ring-cyan-700/20">Observer</span>
+              ) : record.participantCategory === "general_attendee" || record.participantCategory === "additional" ? (
+                <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">General Attendee</span>
               ) : (
                 <span className="text-muted-foreground text-xs">-</span>
               )}
@@ -233,21 +234,19 @@ export function AttendanceList({
                 </TableCell>
                 <TableCell>
                   {record.participantCategory === "invited_delegate" || record.participantCategory === "invited_guest" ? (
-                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">
-                      Delegate
-                    </span>
-                  ) : record.participantCategory === "alliance_member" || record.participantCategory === "nimet_staff" ? (
-                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">
-                      Alliance
-                    </span>
+                    <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-700/20">Invited Delegate</span>
+                  ) : record.participantCategory === "alliance_member" ? (
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/20">Alliance Member</span>
                   ) : record.participantCategory === "speaker" ? (
-                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">
-                      Speaker
-                    </span>
-                  ) : record.participantCategory === "additional" ? (
-                    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">
-                      Additional
-                    </span>
+                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/20">Speaker</span>
+                  ) : record.participantCategory === "nimet_staff" ? (
+                    <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-700/20">NiMet Staff</span>
+                  ) : record.participantCategory === "accredited_media" || record.participantCategory === "media_personality" ? (
+                    <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-inset ring-orange-700/20">Accredited Media</span>
+                  ) : record.participantCategory === "observer" ? (
+                    <span className="inline-flex items-center rounded-md bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 ring-1 ring-inset ring-cyan-700/20">Observer</span>
+                  ) : record.participantCategory === "general_attendee" || record.participantCategory === "additional" ? (
+                    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-700/20">General Attendee</span>
                   ) : (
                     <span className="text-muted-foreground text-xs">-</span>
                   )}

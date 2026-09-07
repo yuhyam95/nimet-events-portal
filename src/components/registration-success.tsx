@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, CalendarDays, MapPin, Mail, Phone, Building, User } from "lucide-react";
+import { Clock, CalendarDays, MapPin, Mail, Phone, Building, User, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Event, Participant } from "@/lib/types";
@@ -51,12 +51,15 @@ export function RegistrationSuccess({ event, participant }: RegistrationSuccessP
                 className="object-contain"
               />
             </div>
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <CardTitle className="text-3xl font-headline text-green-600">Registration Successful!</CardTitle>
+            {/* Pending Review State */}
+            <div className="flex flex-col items-center gap-3 mb-4">
+              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
+                <Clock className="h-8 w-8 text-amber-600" />
+              </div>
+              <CardTitle className="text-3xl font-headline text-amber-600">Registration Submitted!</CardTitle>
             </div>
             <p className="text-lg text-muted-foreground">
-              Thank you for registering for <strong>{event.name}</strong>
+              Your registration for <strong>{event.name}</strong> has been received and is <strong className="text-amber-600">pending review</strong>.
             </p>
           </CardHeader>
           
@@ -123,13 +126,16 @@ export function RegistrationSuccess({ event, participant }: RegistrationSuccessP
             </div>
 
             {/* Important Information */}
-            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
-              <h3 className="font-semibold text-lg mb-2">Important Information</h3>
-              <ul className="space-y-2 text-sm">
-                <li>• A confirmation email with your QR code has been sent to <strong>{participant.contact}</strong></li>
-                <li>• Please check your email (including spam folder) for the QR code</li>
-                <li>• Bring your QR code to the event for easy check-in</li>
-                <li>• If you don't receive the email, please contact the event organizers</li>
+            <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-400">
+              <h3 className="font-semibold text-lg mb-2 flex items-center gap-2 text-amber-800">
+                <Clock className="h-5 w-5" />
+                What Happens Next?
+              </h3>
+              <ul className="space-y-2 text-sm text-amber-900">
+                <li className="flex items-start gap-2"><CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" /> Your registration is now under review by the event organizers.</li>
+                <li className="flex items-start gap-2"><CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" /> Once approved, a <strong>QR code</strong> will be sent to <strong>{participant.contact}</strong>.</li>
+                <li className="flex items-start gap-2"><CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" /> Please check your email (including spam folder) after approval.</li>
+                <li className="flex items-start gap-2"><CheckCircle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" /> Present your QR code at the event venue for check-in.</li>
               </ul>
             </div>
 
