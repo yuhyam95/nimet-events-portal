@@ -66,6 +66,8 @@ export interface Participant {
   participantCategory?: string; // e.g. invited_delegate, alliance_member, speaker, additional
   mealPreference?: string; // Meal selection if event has a food menu
   invitationId?: string; // Linked invitation ID if registered via unique invite
+  registrationStatus?: 'pending' | 'approved' | 'rejected'; // Approval workflow status
+  registrationSubmittedAt?: string; // ISO timestamp of when the form was submitted
 }
 
 export interface Invitation {

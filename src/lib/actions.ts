@@ -31,7 +31,10 @@ const ParticipantSchema = z.object({
     'additional',
     'invited_guest',
     'nimet_staff',
-    'media_personality'
+    'media_personality',
+    'accredited_media',
+    'observer',
+    'general_attendee',
   ]).optional(),
 });
 
@@ -507,7 +510,9 @@ export async function getParticipants(): Promise<(Participant & { eventName: str
         onboardingDate: p.onboardingDate,
         isMediaPersonnel: p.isMediaPersonnel,
         participantCategory: p.participantCategory,
-        mealPreference: p.mealPreference
+        mealPreference: p.mealPreference,
+        registrationStatus: p.registrationStatus || 'approved', // default legacy records to approved
+        registrationSubmittedAt: p.registrationSubmittedAt,
       };
     });
   } catch (error) {
@@ -556,7 +561,9 @@ export async function getParticipantsByEventId(eventId: string): Promise<(Partic
       onboardingDate: p.onboardingDate,
       isMediaPersonnel: p.isMediaPersonnel,
       participantCategory: p.participantCategory,
-      mealPreference: p.mealPreference
+      mealPreference: p.mealPreference,
+      registrationStatus: p.registrationStatus || 'approved', // default legacy records to approved
+      registrationSubmittedAt: p.registrationSubmittedAt,
     }));
   } catch (error) {
     console.error("Error fetching participants for event:", error);
@@ -605,9 +612,18 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       }
     }
 
+    // Determine registration status:
+    // - Staff-onboarded (onboardedBy set) → approved immediately
+    // - Public self-registration → pending (awaits admin approval)
+    const isStaffOnboarded = !!(participantData as any).onboardedBy;
+    const registrationStatus = isStaffOnboarded ? 'approved' : 'pending';
+    const registrationSubmittedAt = new Date().toISOString();
+
     const result = await db.collection("participants").insertOne({
       ...participantData,
-      eventId: new ObjectId(eventId)
+      eventId: new ObjectId(eventId),
+      registrationStatus,
+      registrationSubmittedAt,
     });
 
     // If registered via unique invitation code, mark it as used
@@ -619,8 +635,9 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
       }
     }
 
-    // Send attendance QR code email ONLY if not manually onboarded
-    if (!participantData.onboardedBy) {
+    // Send attendance QR code email ONLY for staff-onboarded participants (already approved)
+    // Public registrations must wait for admin approval before receiving the QR email
+    if (isStaffOnboarded) {
       try {
         // Get event details for the email
         const event = await db.collection("events").findOne({ _id: new ObjectId(eventId) });
@@ -653,7 +670,7 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
             contact: participantData.contact,
             phone: participantData.phone || "",
             eventId: eventId,
-            qrEmailSent: false
+            qrEmailSent: false,
           };
 
           // Send attendance QR email
@@ -681,6 +698,130 @@ export async function addParticipant(data: unknown): Promise<{ success: boolean;
 
     // Return generic error for unexpected issues
     return { success: false, error: "Database operation failed. Could not add participant." };
+  }
+}
+
+/**
+ * Approve a pending registration: sets status to 'approved' and sends the QR code email.
+ */
+export async function approveRegistration(participantId: string): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(participantId)) {
+    return { success: false, error: "Invalid participant ID" };
+  }
+
+  try {
+    const db = await getDb();
+
+    const participant = await db.collection("participants").findOne({ _id: new ObjectId(participantId) });
+    if (!participant) {
+      return { success: false, error: "Participant not found." };
+    }
+
+    // Update status to approved
+    await db.collection("participants").updateOne(
+      { _id: new ObjectId(participantId) },
+      { $set: { registrationStatus: 'approved', approvedAt: new Date().toISOString() } }
+    );
+
+    // Fetch event details and send QR code email
+    const event = await db.collection("events").findOne({ _id: new ObjectId(participant.eventId.toString()) });
+    if (event) {
+      const now = new Date();
+      const startDate = new Date(event.startDate || event.date);
+      const endDate = new Date(event.endDate || event.date);
+      const isActive = event.isActive !== undefined ? event.isActive : (now >= startDate && now <= endDate);
+
+      const mappedEvent: Event = {
+        id: event._id.toString(),
+        name: event.name,
+        slug: event.slug || event._id.toString(),
+        startDate: event.startDate || event.date,
+        endDate: event.endDate || event.date,
+        location: event.location,
+        description: event.description,
+        isActive,
+        isInternal: event.isInternal ?? false,
+      };
+
+      const mappedParticipant: Participant = {
+        id: participantId,
+        name: participant.name,
+        organization: participant.organization || "",
+        designation: participant.designation || "",
+        contact: participant.contact,
+        phone: participant.phone || "",
+        eventId: participant.eventId.toString(),
+        qrEmailSent: false,
+      };
+
+      try {
+        await sendAttendanceQREmail({ participant: mappedParticipant, event: mappedEvent });
+        await db.collection("participants").updateOne(
+          { _id: new ObjectId(participantId) },
+          { $set: { qrEmailSent: true } }
+        );
+      } catch (emailError) {
+        console.error("Failed to send QR email on approval:", emailError);
+        // Approval is still committed even if email fails
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to approve registration:", error);
+    return { success: false, error: "Database operation failed. Could not approve registration." };
+  }
+}
+
+/**
+ * Bulk approve multiple pending registrations and send QR emails to each.
+ */
+export async function bulkApproveRegistrations(participantIds: string[]): Promise<{ success: boolean; approved: number; failed: number; error?: string }> {
+  if (!participantIds.length) {
+    return { success: false, approved: 0, failed: 0, error: "No participant IDs provided." };
+  }
+
+  let approved = 0;
+  let failed = 0;
+
+  for (const id of participantIds) {
+    const result = await approveRegistration(id);
+    if (result.success) {
+      approved++;
+    } else {
+      failed++;
+      console.error(`Failed to approve participant ${id}:`, result.error);
+    }
+  }
+
+  return { success: approved > 0, approved, failed };
+}
+
+/**
+ * Reject a pending registration: sets status to 'rejected' for audit trail. No email is sent.
+ */
+export async function rejectRegistration(participantId: string): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(participantId)) {
+    return { success: false, error: "Invalid participant ID" };
+  }
+
+  try {
+    const db = await getDb();
+
+    const participant = await db.collection("participants").findOne({ _id: new ObjectId(participantId) });
+    if (!participant) {
+      return { success: false, error: "Participant not found." };
+    }
+
+    await db.collection("participants").updateOne(
+      { _id: new ObjectId(participantId) },
+      { $set: { registrationStatus: 'rejected', rejectedAt: new Date().toISOString() } }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to reject registration:", error);
+    return { success: false, error: "Database operation failed. Could not reject registration." };
   }
 }
 
