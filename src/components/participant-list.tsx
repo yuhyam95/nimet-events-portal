@@ -42,7 +42,8 @@ import {
   CheckCheck,
 } from "lucide-react";
 import type { Participant } from "@/lib/types";
-import { sendQRCodeToParticipant, sendQRCodesToAllParticipants, sendFollowUpToParticipant, sendFollowUpToAllParticipants, approveRegistration, bulkApproveRegistrations, rejectRegistration } from "@/lib/actions";
+import { sendQRCodeToParticipant, sendQRCodesToAllParticipants, sendFollowUpToParticipant, sendFollowUpToAllParticipants, approveRegistration, bulkApproveRegistrations, rejectRegistration, unapproveRegistration } from "@/lib/actions";
+import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateFlyer, downloadFlyer } from "@/lib/flyer-generator";
@@ -101,11 +102,14 @@ export function ParticipantList({
   });
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   // Approval workflow state
   const [activeTab, setActiveTab] = React.useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [isApprovingIds, setIsApprovingIds] = React.useState<Set<string>>(new Set());
   const [isRejectingIds, setIsRejectingIds] = React.useState<Set<string>>(new Set());
+  const [isUnapprovingIds, setIsUnapprovingIds] = React.useState<Set<string>>(new Set());
   const [isBulkApproving, setIsBulkApproving] = React.useState(false);
 
   const handleSort = (key: SortKey) => {
@@ -437,6 +441,25 @@ export function ParticipantList({
       toast({ variant: "destructive", title: "Error", description: "Failed to reject registration. Please try again." });
     } finally {
       setIsRejectingIds(prev => { const s = new Set(prev); s.delete(participantId); return s; });
+    }
+  };
+
+  const handleUnapprove = async (participantId: string) => {
+    setIsUnapprovingIds(prev => new Set(prev).add(participantId));
+    try {
+      const result = await unapproveRegistration(participantId);
+      if (result.success) {
+        setParticipants(prev =>
+          prev.map(p => p.id === participantId ? { ...p, registrationStatus: 'pending' as const } : p)
+        );
+        toast({ title: "Registration Unapproved", description: "The participant has been moved back to pending review." });
+      } else {
+        toast({ variant: "destructive", title: "Unapproval Failed", description: result.error || "Could not unapprove registration." });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to unapprove registration. Please try again." });
+    } finally {
+      setIsUnapprovingIds(prev => { const s = new Set(prev); s.delete(participantId); return s; });
     }
   };
 
@@ -783,6 +806,21 @@ export function ParticipantList({
               {participant.phone}
             </p>
             <div className="flex flex-col gap-2 mt-4">
+              {/* Unapprove button — mobile, admin only, approved participants */}
+              {isAdmin && participant.registrationStatus === 'approved' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-medium disabled:opacity-50"
+                    onClick={() => handleUnapprove(participant.id)}
+                    disabled={isUnapprovingIds.has(participant.id)}
+                  >
+                    {isUnapprovingIds.has(participant.id) ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Clock className="mr-1 h-4 w-4" />}
+                    Unapprove
+                  </Button>
+                </div>
+              )}
               {/* Approve / Reject buttons — mobile, only for pending */}
               {(participant.registrationStatus || 'approved') === 'pending' && (
                 <div className="flex gap-2">
@@ -934,6 +972,19 @@ export function ParticipantList({
                 <TableCell className="text-muted-foreground">{participant.phone}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-2">
+                    {/* Unapprove — admin only, approved registrations */}
+                    {isAdmin && participant.registrationStatus === 'approved' && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg transition-all duration-200 font-medium disabled:opacity-50"
+                        onClick={() => handleUnapprove(participant.id)}
+                        disabled={isUnapprovingIds.has(participant.id)}
+                      >
+                        {isUnapprovingIds.has(participant.id) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+                        {isUnapprovingIds.has(participant.id) ? "Unapproving..." : "Unapprove"}
+                      </Button>
+                    )}
                     {/* Approve / Reject — only for pending registrations */}
                     {(participant.registrationStatus || 'approved') === 'pending' && (
                       <>
