@@ -825,6 +825,42 @@ export async function rejectRegistration(participantId: string): Promise<{ succe
   }
 }
 
+/**
+ * Unapprove an approved registration: reverts status back to 'pending'.
+ * Admin-only action — no email is sent.
+ */
+export async function unapproveRegistration(participantId: string): Promise<{ success: boolean; error?: string }> {
+  if (!ObjectId.isValid(participantId)) {
+    return { success: false, error: "Invalid participant ID" };
+  }
+
+  try {
+    const db = await getDb();
+
+    const participant = await db.collection("participants").findOne({ _id: new ObjectId(participantId) });
+    if (!participant) {
+      return { success: false, error: "Participant not found." };
+    }
+
+    if (participant.registrationStatus !== 'approved') {
+      return { success: false, error: "Only approved registrations can be unapproved." };
+    }
+
+    await db.collection("participants").updateOne(
+      { _id: new ObjectId(participantId) },
+      {
+        $set: { registrationStatus: 'pending', unapprovedAt: new Date().toISOString() },
+        $unset: { approvedAt: "" },
+      }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to unapprove registration:", error);
+    return { success: false, error: "Database operation failed. Could not unapprove registration." };
+  }
+}
+
 export async function getUsers(): Promise<User[]> {
   try {
     const db = await getDb();
