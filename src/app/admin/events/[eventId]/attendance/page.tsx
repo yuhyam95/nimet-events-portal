@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DayByDayAttendance } from "@/components/day-by-day-attendance";
 import { AdminOnboardingModal } from "@/components/admin-onboarding-modal";
+import { RegistrationReport } from "@/components/registration-report";
 
 interface EventAttendancePageProps {
   params: Promise<{
@@ -142,6 +143,13 @@ export default async function EventAttendancePage({ params }: EventAttendancePag
         eventStartDate={event.startDate}
         eventEndDate={event.endDate}
         initialStatsByDate={statsByDate}
+      />
+
+      <RegistrationReport
+        eventId={eventId}
+        eventName={event.name}
+        eventStartDate={event.startDate}
+        eventEndDate={event.endDate}
       />
 
       {/* <AttendanceList initialAttendance={attendance} eventName={event.name} /> */}

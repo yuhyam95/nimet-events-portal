@@ -2181,3 +2181,54 @@ export async function sendInvitationEmailAction(
   }
 }
 
+
+
+export interface RegistrationReportRow {
+  id: string;
+  name: string;
+  organization: string;
+  email: string;
+  phone: string;
+  registeredAt: string | null; // ISO timestamp, null for older records without one
+  registrationStatus: string;
+  attended: boolean; // attended on the requested attendance date (or on any day if none given)
+}
+
+/**
+ * Lists every participant registered for an event, flagged with whether they
+ * attended on `attendanceDate` (or on any day when omitted). Works for past events.
+ */
+export async function getRegistrationReport(eventId: string, attendanceDate?: string): Promise<RegistrationReportRow[]> {
+  if (!ObjectId.isValid(eventId)) {
+    return [];
+  }
+
+  try {
+    const db = await getDb();
+    const attendanceFilter: any = { eventId: new ObjectId(eventId) };
+    if (attendanceDate) {
+      attendanceFilter.attendanceDate = attendanceDate;
+    }
+
+    const [participants, attendedIds] = await Promise.all([
+      db.collection("participants").find({ eventId: new ObjectId(eventId) }).toArray(),
+      db.collection("attendance").distinct("participantId", attendanceFilter),
+    ]);
+
+    const attendedSet = new Set(attendedIds.map((id: any) => id.toString()));
+
+    return participants.map((p: any) => ({
+      id: p._id.toString(),
+      name: p.name || "Unknown",
+      organization: p.organization || "",
+      email: p.email || "",
+      phone: p.phone || "",
+      registeredAt: p.registrationSubmittedAt || null,
+      registrationStatus: p.registrationStatus || "approved",
+      attended: attendedSet.has(p._id.toString()),
+    }));
+  } catch (error) {
+    console.error("Error fetching registration report:", error);
+    return [];
+  }
+}
