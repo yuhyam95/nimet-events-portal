@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-middleware';
 import { markAttendance } from '@/lib/actions';
 import { decryptQRCodeData } from '@/lib/qr-generator';
 import { z } from 'zod';
+import { ObjectId } from 'mongodb';
+import { getDb } from '@/lib/mongodb';
 
 const ScanSchema = z.object({
   qrData: z.string().min(1, { message: "QR code data is required." }).optional(),
@@ -33,47 +35,67 @@ async function handleScan(request: NextRequest) {
 
     const { qrData, participantId: rawParticipantId, eventId, attendanceDate } = validation.data;
 
-    // Handle both qrData (new format) and participantId (old format)
-    let participantId: string;
-    
-    if (qrData) {
-      // New format: decrypt QR code data
+    // Normalize raw input from either qrData or participantId
+    const rawInput = (qrData || rawParticipantId || '').trim();
+    let participantId: string = '';
+
+    // 1. If encrypted QR format (nimet://attendance/...)
+    if (rawInput.startsWith('nimet://attendance/')) {
       try {
-        console.log('QR Data received:', qrData);
-        participantId = decryptQRCodeData(qrData);
+        console.log('Deciphering QR data URI:', rawInput);
+        participantId = decryptQRCodeData(rawInput);
         console.log('Decrypted participant ID:', participantId);
       } catch (error) {
         console.error('QR decryption error:', error);
         return NextResponse.json(
-          { success: false, error: 'Invalid QR code' },
+          { success: false, error: 'Invalid or corrupt QR code format' },
           { status: 400 }
         );
       }
-    } else if (rawParticipantId) {
-      // Old format: check if it's QR data or already decrypted
-      if (rawParticipantId.startsWith('nimet://attendance/')) {
-        // It's QR data, decrypt it
-        try {
-          console.log('Participant ID appears to be QR data, decrypting:', rawParticipantId);
-          participantId = decryptQRCodeData(rawParticipantId);
-          console.log('Decrypted participant ID:', participantId);
-        } catch (error) {
-          console.error('QR decryption error:', error);
-          return NextResponse.json(
-            { success: false, error: 'Invalid QR code format' },
-            { status: 400 }
-          );
+    } 
+    // 2. Direct MongoDB ObjectId format (24 hex chars)
+    else if (ObjectId.isValid(rawInput) && rawInput.length === 24) {
+      participantId = rawInput;
+      console.log('Using valid MongoDB participant ID directly:', participantId);
+    } 
+    // 3. Fallback: try decrypting in case the prefix was omitted
+    else {
+      let resolved = false;
+      try {
+        participantId = decryptQRCodeData(`nimet://attendance/${rawInput}`);
+        if (ObjectId.isValid(participantId)) {
+          resolved = true;
+          console.log('Decrypted raw token to participant ID:', participantId);
         }
-      } else {
-        // It's already a participant ID
-        participantId = rawParticipantId;
-        console.log('Using participant ID directly:', participantId);
+      } catch {
+        // Not a prefixed or raw encrypted string
       }
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Either qrData or participantId is required' },
-        { status: 400 }
-      );
+
+      // 4. Check if it is an invitation code for this event
+      if (!resolved) {
+        try {
+          const db = await getDb();
+          const invitation = await db.collection("invitations").findOne({
+            eventId,
+            code: rawInput.toUpperCase()
+          });
+
+          if (invitation?.participantId) {
+            participantId = invitation.participantId;
+            resolved = true;
+            console.log('Resolved invitation code to participant ID:', participantId);
+          }
+        } catch (dbErr) {
+          console.error('Invitation code lookup error:', dbErr);
+        }
+      }
+
+      if (!resolved || !participantId) {
+        return NextResponse.json(
+          { success: false, error: 'Unrecognized QR code or participant ID' },
+          { status: 400 }
+        );
+      }
     }
 
     // Get user ID from authenticated request
@@ -86,7 +108,8 @@ async function handleScan(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: result.error || "Failed to mark attendance" 
+          error: result.error || "Failed to mark attendance",
+          attendance: result.attendance,
         },
         { status: 400 }
       );
