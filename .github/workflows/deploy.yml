@@ -1,83 +1,101 @@
 name: Deploy to VPS
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
   deploy:
     name: Deploy
+    needs: ci
     runs-on: ubuntu-latest
+    environment: production
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      APP_NAME: nimet-events-portal
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-            node-version: '20'
-
       - name: Add SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
 
       - name: Rsync project to VPS
         run: |
-          RSYNC_EXCLUDES=(
-            ".git/"
-            "node_modules/"
-            ".next/"
-            "npm-debug.log"
-            "**/.DS_Store"
-            ".github/"
-          )
-          IFS=$'\n'; EXCLUDES=("${RSYNC_EXCLUDES[@]/#/--exclude=}")
-          rsync -az --delete ${EXCLUDES[*]} ./ $SSH_USER@$SSH_HOST:$DEPLOY_PATH/
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='node_modules/' \
+            --exclude='.next/' \
+            --exclude='.env*' \
+            --exclude='pikins*' \
+            --exclude='app.out' \
+            --exclude='app.pid' \
+            --exclude='npm-debug.log' \
+            --exclude='**/.DS_Store' \
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
 
-      - name: Write .env on server (optional)
-        if: ${{ secrets.ENV_FILE != '' }}
+      - name: Write .env on server (if ENV_FILE secret is set)
         run: |
-          ssh $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_PATH && cat > $DEPLOY_PATH/.env << 'EOF'
-          $ENV_FILE
-          EOF"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          ENV_FILE: ${{ secrets.ENV_FILE }}
+          if [ -z "$ENV_FILE" ]; then
+            echo "ENV_FILE secret not set - keeping existing .env on server."
+            exit 0
+          fi
+          printf '%s\n' "$ENV_FILE" | ssh "$SSH_USER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH' && cat > '$DEPLOY_PATH/.env'"
 
       - name: Install, build, and restart app on VPS
         run: |
-          ssh $SSH_USER@$SSH_HOST "\
-            set -euo pipefail; \
-            cd $DEPLOY_PATH; \
-            export NODE_ENV=production; \
-            command -v npm >/dev/null 2>&1 || { echo 'npm not found on server'; exit 1; }; \
-            if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi; \
-            npm run build; \
-            if command -v pm2 >/dev/null 2>&1; then \
-              pm2 describe nimet-events-portal >/dev/null 2>&1 && pm2 reload nimet-events-portal || pm2 start npm --name nimet-events-portal -- start; \
-              pm2 save; \
-            else \
-              echo 'PM2 not installed. Starting app in background with nohup...'; \
-              nohup npm run start > app.out 2>&1 < /dev/null & echo $! > app.pid; \
-            fi"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          ssh "$SSH_USER@$SSH_HOST" "DEPLOY_PATH='$DEPLOY_PATH' APP_NAME='$APP_NAME' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          command -v npm >/dev/null 2>&1 || { echo 'npm not found on server'; exit 1; }
 
+          # Build needs devDependencies (typescript, tailwind, postcss)
+          npm ci
+          NODE_ENV=production npm run build
+          npm prune --omit=dev
 
+          if command -v pm2 >/dev/null 2>&1; then
+            if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
+              pm2 reload "$APP_NAME" --update-env
+            else
+              NODE_ENV=production pm2 start npm --name "$APP_NAME" -- start
+            fi
+            pm2 save
+          else
+            echo 'PM2 not installed. Restarting with nohup...'
+            if [ -f app.pid ]; then kill "$(cat app.pid)" 2>/dev/null || true; fi
+            NODE_ENV=production nohup npm run start > app.out 2>&1 < /dev/null &
+            echo $! > app.pid
+          fi
+          EOF
+
+      - name: Health check
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" '
+            for i in $(seq 1 10); do
+              curl -fsS -o /dev/null http://127.0.0.1:3000 && { echo "App is up"; exit 0; }
+              sleep 3
+            done
+            echo "App did not respond on port 3000"; exit 1
+          '

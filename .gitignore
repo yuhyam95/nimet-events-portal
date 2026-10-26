@@ -40,6 +40,12 @@ next-env.d.ts
 .genkit/*
 .env*
 
+# SSH keys - never commit
+pikins
+pikins.pub
+id_*
+*.pem
+
 # firebase
 firebase-debug.log
 firestore-debug.log
